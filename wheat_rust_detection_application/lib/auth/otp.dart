@@ -60,9 +60,8 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
               ),
             ),
             onPressed: () {
-              // TODO: Implement continue functionality
-              print('Continue button pressed');
-              print('Phone Number: ${_phoneNumberController.text}');
+              debugPrint('Continue button pressed');
+              debugPrint('Phone Number: ${_phoneNumberController.text}');
             },
             child: const Text(
               'Continue',

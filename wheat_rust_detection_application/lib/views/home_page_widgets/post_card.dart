@@ -19,11 +19,11 @@ class PostCard extends StatefulWidget {
 class _PostCardState extends State<PostCard> {
   bool _isLiked = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _isLiked = widget.post.isLikedByUser!;
-  }
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   _isLiked = widget.post.likesCount as bool;
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +35,34 @@ class _PostCardState extends State<PostCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildImageSection(),
+          const SizedBox(
+            height: 20,
+          ),
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: Colors.yellow[700],
+                child: const Icon(Icons.person, color: Colors.black),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.post.userName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                  Text(
+                    widget.post.timeAgo,
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ],
+          ),
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -49,8 +77,9 @@ class _PostCardState extends State<PostCard> {
                     color: Colors.grey.shade800,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 // Action Buttons (like, comment, share)
+                const Divider(),
                 _buildActionButtons(),
                 // Comments Section
                 _buildCommentsSection(),
@@ -83,14 +112,14 @@ class _PostCardState extends State<PostCard> {
     return Container(
       height: 200,
       color: Colors.grey[200],
-      child: Center(child: Text('Image not available')),
+      child: const Center(child: Text('Image not available')),
     );
   }
 
   // Widget to build the action buttons
   Widget _buildActionButtons() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         IconButton(
           icon: Icon(
@@ -111,14 +140,14 @@ class _PostCardState extends State<PostCard> {
         IconButton(
           icon: const Icon(Icons.comment_outlined),
           onPressed: () {
-            // Navigate to comment page or show comment dialog
-            showDialog(
-              context: context,
-              builder: (context) => CommentDialog(
-                postId: widget.post.id,
-                postController: widget.postController,
-              ),
-            );
+            // // Navigate to comment page or show comment dialog
+            // showDialog(
+            //   context: context,
+            //   builder: (context) => CommentDialog(
+            //     postId: widget.post.id,
+            //     postController: widget.postController,
+            //   ),
+            // );
           },
         ),
         IconButton(
@@ -132,7 +161,7 @@ class _PostCardState extends State<PostCard> {
   // Widget to build the comments section
   Widget _buildCommentsSection() {
     return Column(
-      children: (widget.post.comments ?? []).map((comment) {
+      children: (widget.post.comments).map((comment) {
         // Handle null comments
         return Text(
           comment.text,
@@ -146,49 +175,49 @@ class _PostCardState extends State<PostCard> {
   }
 }
 
-class CommentDialog extends StatefulWidget {
-  final String postId;
-  final PostController postController;
+// class CommentDialog extends StatefulWidget {
+//   final String postId;
+//   final PostController postController;
 
-  const CommentDialog({
-    super.key,
-    required this.postId,
-    required this.postController,
-  });
+//   const CommentDialog({
+//     super.key,
+//     required this.postId,
+//     required this.postController,
+//   });
 
-  @override
-  _CommentDialogState createState() => _CommentDialogState();
-}
+//   @override
+//   _CommentDialogState createState() => _CommentDialogState();
+// }
 
-class _CommentDialogState extends State<CommentDialog> {
-  final TextEditingController _commentController = TextEditingController();
+// class _CommentDialogState extends State<CommentDialog> {
+//   final TextEditingController _commentController = TextEditingController();
 
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _commentController,
-              decoration: const InputDecoration(hintText: 'Write a comment'),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: () async {
-                await widget.postController.createComment(
-                  widget.postId,
-                  _commentController.text,
-                );
-                Navigator.pop(context);
-              },
-              child: const Text('Post Comment'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Dialog(
+//       child: Padding(
+//         padding: const EdgeInsets.all(16.0),
+//         child: Column(
+//           mainAxisSize: MainAxisSize.min,
+//           children: [
+//             TextField(
+//               controller: _commentController,
+//               decoration: const InputDecoration(hintText: 'Write a comment'),
+//             ),
+//             const SizedBox(height: 8),
+//             ElevatedButton(
+//               onPressed: () async {
+//                 await widget.postController.createComment(
+//                   widget.postId,
+//                   _commentController.text,
+//                 );
+//                 Navigator.pop(context);
+//               },
+//               child: const Text('Post Comment'),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }

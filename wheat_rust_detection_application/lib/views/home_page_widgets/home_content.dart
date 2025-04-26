@@ -22,6 +22,7 @@ class HomeContentPage extends StatefulWidget {
 
 class _HomeContentPageState extends State<HomeContentPage> {
   String _userId = '';
+  bool _isPostsSelected = true;
 
   @override
   void initState() {
@@ -128,35 +129,87 @@ class _HomeContentPageState extends State<HomeContentPage> {
                 ],
               ),
             ),
-            // Example of a reusable card widget
-            Consumer<PostController>(
-              builder: (context, postController, child) {
-                if (postController.posts.isEmpty) {
-                  return const Center(
-                      child:
-                          CircularProgressIndicator()); // Or a message like "No posts yet"
-                } else {
-                  return Column(
-                    children: postController.posts.map((post) {
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PostDetailsPage(),
-                            ),
-                          );
-                        },
-                        child: PostCard(
-                          post: post,
-                          postController: postController,
-                        ),
-                      );
-                    }).toList(),
-                  );
-                }
-              },
+
+            // Added Tab Selection
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isPostsSelected = true;
+                      });
+                    },
+                    child: Text(
+                      'Posts',
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: _isPostsSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color: _isPostsSelected ? Colors.black : Colors.grey,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 20.w),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isPostsSelected = false;
+                      });
+                    },
+                    child: Text(
+                      'Articles',
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: !_isPostsSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color: !_isPostsSelected ? Colors.black : Colors.grey,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
+            SizedBox(height: 10.h),
+            // Example of a reusable card widget
+            if (_isPostsSelected)
+              Consumer<PostController>(
+                builder: (context, postController, child) {
+                  if (postController.posts.isEmpty) {
+                    return const Center(
+                        child:
+                            CircularProgressIndicator()); // Or a message like "No posts yet"
+                  } else {
+                    return Column(
+                      children: postController.posts.map((post) {
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PostDetailsPage(
+                                  post: post,
+                                ),
+                              ),
+                            );
+                          },
+                          child: PostCard(
+                            post: post,
+                            postController: postController,
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  }
+                },
+              )
+            else
+              const Center(
+                child: Text('Articles Coming Soon!'),
+              )
           ],
         ),
       ),

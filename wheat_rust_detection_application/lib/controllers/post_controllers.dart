@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wheat_rust_detection_application/api_services.dart';
 import 'package:wheat_rust_detection_application/models/post_model.dart';
 
@@ -15,14 +18,48 @@ class PostController with ChangeNotifier {
     List<File>? images,
   }) async {
     try {
-      final response = await _apiService.createPost(
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString('auth_token');
+      String? refreshToken = prefs.getString('refresh_token');
+      if (accessToken == null || refreshToken == null) {
+        // Handle case where tokens are not available
+        debugPrint('Tokens not found. Please log in again.');
+        return null;
+      }
+      http.Response response = await _apiService.createPost(
         userId,
         text: text,
         image: images,
+        accessToken: accessToken,
       );
+      if (response.statusCode == 401) {
+        // Token might be expired, try to refresh
+        debugPrint('Access token expired, attempting to refresh');
+        final refreshResponse = await _apiService.refreshToken(refreshToken);
+
+        if (refreshResponse.statusCode == 200) {
+          final newAccessToken = jsonDecode(refreshResponse.body)['access'];
+          await prefs.setString('auth_token', newAccessToken);
+          debugPrint('Access token refreshed successfully');
+
+          // Retry the original request with the new access token
+          response = await _apiService.createPost(
+            userId,
+            text: text,
+            image: images,
+            accessToken: newAccessToken, // Use new access token
+          );
+        } else {
+          // Refresh failed, redirect user to login
+          debugPrint('Failed to refresh token: ${refreshResponse.statusCode}');
+          // Redirect to login page
+          return null;
+        }
+      }
 
       if (response.statusCode == 201) {
         final jsonData = jsonDecode(response.body);
+        fetchPosts();
         return Post.fromJson(jsonData);
       } else {
         debugPrint('Failed to create post: ${response.statusCode}');
@@ -61,16 +98,22 @@ class PostController with ChangeNotifier {
     }
   }
 
-  Future<void> createComment(String postId, String comment) async {
+  Future<Comment?> createComment(
+      {required String postId, required String comment}) async {
     try {
       final response = await _apiService.createComment(postId, comment);
       if (response.statusCode == 201) {
         debugPrint('Comment created successfully');
+        fetchPosts();
+        final jsonData = jsonDecode(response.body);
+        return Comment.fromJson(jsonData);
       } else {
         debugPrint('Failed to create comment: ${response.statusCode}');
+        return null;
       }
     } catch (e) {
       debugPrint('Error creating comment: $e');
+      return null;
     }
   }
 

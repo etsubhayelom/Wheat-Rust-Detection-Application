@@ -31,6 +31,7 @@ class LoginController extends GetxController {
         final userId = responseData['user']['id'].toString();
         final userName = responseData['user']['name'];
         final userEmail = responseData['user']['email'];
+        final userRole = responseData['user']['role'] ?? 'Other';
 
         debugPrint('Access token and user ID stored successfully');
         // Store the token in SharedPreferences
@@ -41,6 +42,7 @@ class LoginController extends GetxController {
         await prefs.setString('user_id', userId);
         await prefs.setString('user_name', userName);
         await prefs.setString('user_email', userEmail);
+        await prefs.setString('role', userRole);
 
         debugPrint('Token stored successfully');
 

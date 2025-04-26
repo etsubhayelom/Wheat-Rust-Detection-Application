@@ -7,7 +7,7 @@ import 'package:wheat_rust_detection_application/controllers/login_controller.da
 import 'package:wheat_rust_detection_application/views/home_page_widgets/home_page.dart';
 
 class LoginPage extends StatefulWidget {
-  static var route;
+  static String route = 'login-page';
 
   const LoginPage({super.key});
 

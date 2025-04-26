@@ -1,8 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:wheat_rust_detection_application/constants.dart';
+import 'package:wheat_rust_detection_application/controllers/post_controllers.dart';
+import 'package:wheat_rust_detection_application/models/post_model.dart';
 
-class PostDetailsPage extends StatelessWidget {
-  const PostDetailsPage({super.key});
+class PostDetailsPage extends StatefulWidget {
+  final Post post;
+  const PostDetailsPage({super.key, required this.post});
+
+  @override
+  State<PostDetailsPage> createState() => _PostDetailsPageState();
+}
+
+class _PostDetailsPageState extends State<PostDetailsPage> {
+  final TextEditingController _commentController = TextEditingController();
+  List<Comment> _comments = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _comments = List.from(widget.post.comments);
+  }
+
+  void _addComment(String commentText) async {
+    if (commentText.isNotEmpty) {
+      final newComment =
+          await Provider.of<PostController>(context, listen: false)
+              .createComment(postId: widget.post.id, comment: commentText);
+
+      if (newComment != null) {
+        setState(() {
+          _comments.add(newComment);
+          _commentController.clear();
+        });
+      } else {
+        // Handle the error
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to add comment')));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,12 +65,19 @@ class PostDetailsPage extends StatelessWidget {
           ClipRRect(
             borderRadius:
                 const BorderRadius.vertical(bottom: Radius.circular(20)),
-            child: Image.asset(
-              'assets/splash1.png',
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
+            child: widget.post.images != null && widget.post.images!.isNotEmpty
+                ? Image.network(
+                    widget.post.images!,
+                    height: 300,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  )
+                : Image.asset(
+                    'assets/splash1.png',
+                    height: 300,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
           ),
 
           // Post Content
@@ -64,14 +108,14 @@ class PostDetailsPage extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "Ayele Dumamo",
-                                  style: TextStyle(
+                                  widget.post.userName,
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.amber[700],
+                                    color: Colors.black,
                                   ),
                                 ),
                                 Text(
-                                  "2 h",
+                                  widget.post.timeAgo,
                                   style: TextStyle(color: Colors.grey[600]),
                                 ),
                               ],
@@ -81,17 +125,18 @@ class PostDetailsPage extends StatelessWidget {
                         const SizedBox(height: 10),
 
                         // Post Title
-                        const Text(
-                          "Help identifying the problem with my Wheat",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
+                        if (widget.post.title != null)
+                          Text(
+                            widget.post.title!,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
                         const SizedBox(height: 5),
 
                         // Post Description
-                        const Text(
-                          "The app has already given me a possible problem with my Wheat. It said it has a stem rust but the medicine recommended is not available in my area. Does anyone know any other alternative? or where I could find medicine for stem rust pls!",
-                          style: TextStyle(color: Colors.black87),
+                        Text(
+                          widget.post.description ?? "",
+                          style: const TextStyle(color: Colors.black87),
                         ),
                         const SizedBox(height: 15),
 
@@ -103,37 +148,80 @@ class PostDetailsPage extends StatelessWidget {
                                   color: Colors.black54),
                               onPressed: () {},
                             ),
-                            const Text("0"),
+                            Text("${widget.post.likesCount}"),
                             const SizedBox(width: 10),
                             IconButton(
                               icon: const Icon(Icons.mode_comment_outlined,
                                   color: Colors.black54),
                               onPressed: () {},
                             ),
-                            const Text("0"),
+                            Text("${widget.post.commentsCount}"),
                             const SizedBox(width: 10),
                             IconButton(
                               icon: const Icon(Icons.share,
                                   color: Colors.black54),
                               onPressed: () {},
                             ),
-                            const Text("3"),
+                            const Text("0"),
                           ],
                         ),
                       ],
                     ),
                   ),
 
-                  // No Comments Section
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 20, horizontal: 16),
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "No comments yet",
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                  ),
+                  // Comments Section
+                  _comments.isNotEmpty
+                      ? ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _comments.length,
+                          itemBuilder: (context, index) {
+                            final comment = _comments[index];
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 8, horizontal: 16),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                border: Border(
+                                  bottom: BorderSide(
+                                      color: Colors.grey, width: 0.5),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const CircleAvatar(
+                                    backgroundColor: Colors.grey,
+                                    child:
+                                        Icon(Icons.person, color: Colors.white),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          comment.userId,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                        Text(comment.text),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          })
+                      : Container(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 20, horizontal: 16),
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "No comments yet",
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        ),
                 ],
               ),
             ),
@@ -151,9 +239,10 @@ class PostDetailsPage extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: TextField(
-                    decoration: InputDecoration(
+                    controller: _commentController,
+                    decoration: const InputDecoration(
                       hintText: "Write your answer",
                       hintStyle: TextStyle(color: Colors.grey),
                       border: InputBorder.none,
@@ -163,12 +252,13 @@ class PostDetailsPage extends StatelessWidget {
                 CircleAvatar(
                   backgroundColor: hexToColor('D9D9D9'),
                   child: IconButton(
-                    icon: Icon(
-                      Icons.send,
-                      color: hexToColor('757575'),
-                    ),
-                    onPressed: () {},
-                  ),
+                      icon: Icon(
+                        Icons.send,
+                        color: hexToColor('757575'),
+                      ),
+                      onPressed: () {
+                        _addComment(_commentController.text);
+                      }),
                 )
               ],
             ),

@@ -1,40 +1,79 @@
 class Post {
   final String id;
   final String userId;
+  final String userName;
   final String? description;
   final String? images;
-  final int likes;
+  final String? audio;
+  final DateTime? createdAt;
+  final int likesCount;
+  final int commentsCount;
   final List<Comment> comments;
-  final bool isLikedByUser;
 
-  const Post(
-      {required this.id,
-      required this.userId,
-      this.description,
-      this.images,
-      required this.likes,
-      required this.comments,
-      required this.isLikedByUser});
+  final String? postType;
+  final String? title;
+
+  const Post({
+    required this.id,
+    required this.userId,
+    required this.userName,
+    this.audio,
+    this.description,
+    this.images,
+    this.createdAt,
+    required this.commentsCount,
+    required this.likesCount,
+    required this.comments,
+    this.postType,
+    this.title,
+  });
 
   factory Post.fromJson(Map<String, dynamic> json) {
-    List<dynamic>? commentsJson = json['comments']; // Capture as nullable
-
     List<Comment> commentsList = [];
 
-    if (commentsJson != null) {
-      commentsList = commentsJson
+    if (json['comments'] != null && json['comments'] is List) {
+      commentsList = (json['comments'] as List)
           .map((commentJson) => Comment.fromJson(commentJson))
           .toList();
     }
     return Post(
       id: json['id'].toString(),
       userId: json['user'].toString(),
+      userName: _capitalizeName(json['user_name'] as String),
       description: json['text'] as String?,
       images: json['image'],
-      likes: json['likes_count'] ?? 0,
+      audio: json['audio'] as String?,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : null,
+      likesCount: json['likes_count'] ?? 0,
+      commentsCount: json['comments_count'] ?? 0,
       comments: commentsList,
-      isLikedByUser: json['is_liked_by_user'] ?? false,
+      postType: json['post_type'] as String?,
+      title: json['title'] as String?,
     );
+  }
+
+  String get timeAgo {
+    if (createdAt == null) return '';
+    final now = DateTime.now();
+    final diff = now.difference(createdAt!);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+    if (diff.inHours < 24) return '${diff.inHours} h ago';
+    return '${diff.inDays} d ago';
+  }
+
+  static String _capitalizeName(String name) {
+    if (name.isEmpty) return '';
+
+    List<String> words = name.split(' ');
+    List<String> capitalizedWords = words.map((word) {
+      if (word.isEmpty) return '';
+      return word[0].toUpperCase() + word.substring(1).toLowerCase();
+    }).toList();
+
+    return capitalizedWords.join(' ');
   }
 }
 

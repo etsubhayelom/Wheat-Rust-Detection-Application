@@ -55,12 +55,11 @@ class ApiService {
     String userId, {
     String? text,
     List<File>? image,
+    required String accessToken,
   }) async {
     final url = Uri.parse(
         '$_baseUrl/community/posts/create/'); // Adjust the URL as per your API
     var request = http.MultipartRequest('POST', url);
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? authToken = prefs.getString('auth_token');
 
     request.fields['user'] = userId;
 
@@ -81,11 +80,8 @@ class ApiService {
       }
     }
 
-    if (authToken != null) {
-      request.headers['Authorization'] = 'Bearer $authToken';
-    } else {
-      throw Exception('Authentication token not found');
-    }
+    request.headers['Authorization'] = 'Bearer $accessToken';
+    request.fields['user'] = userId;
 
     try {
       final streamedResponse = await request.send();
@@ -146,7 +142,8 @@ class ApiService {
         'Authorization': 'Bearer $authToken', // Include the token
       },
       body: jsonEncode({
-        "text": comment, // Changed "comment" to "text" to match the API
+        "text": comment,
+        "post": postId,
       }),
     );
 
@@ -188,5 +185,44 @@ class ApiService {
     log('Fetch User Posts Response: Status Code = ${response.statusCode}, Body = ${response.body}');
 
     return response;
+  }
+
+  Future<http.Response> refreshToken(String refreshToken) async {
+    final url = Uri.parse(
+        '$_baseUrl/token/refresh/'); // Or whatever your refresh endpoint is
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'refresh': refreshToken}),
+    );
+
+    return response;
+  }
+
+  Future<Map<String, dynamic>> getCurrentUser() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? authToken = prefs.getString('auth_token');
+
+    final response = await http.get(
+      Uri.parse('$_baseUrl/users/'),
+      headers: {
+        'Authorization': 'Bearer $authToken',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      List<dynamic> users = json.decode(response.body);
+      String? userEmail = prefs.getString('email');
+
+      for (var user in users) {
+        if (user['email'] == userEmail) {
+          return user;
+        }
+      }
+      throw Exception('User not found');
+    } else {
+      throw Exception('Failed to load user data: ${response.statusCode}');
+    }
   }
 }

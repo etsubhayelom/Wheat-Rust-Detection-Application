@@ -32,7 +32,7 @@ class _KnowTheDiseasePageState extends State<KnowTheDiseasePage> {
       if (pickedFile != null) {
         _image = File(pickedFile.path);
       } else {
-        print('No image selected.');
+        debugPrint('No image selected.');
       }
     });
   }

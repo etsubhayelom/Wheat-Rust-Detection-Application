@@ -14,35 +14,56 @@ class SignupController extends GetxController {
 
   final ApiService _apiService = ApiService();
 
-  Future<void> registerUser(String name, String email, String password) async {
+  Future<void> registerUser(
+      String name, String email, String password, String role) async {
     isLoading = true;
     update();
 
     try {
-      final response = await _apiService.signup(email, name, password);
+      final response = await _apiService.signup(name, email, password);
 
       if (response.statusCode == 201) {
         debugPrint('User registered successfully');
         final responseData = jsonDecode(response.body);
-        final token =
-            responseData['token']; // Assuming the token is in the 'token' field
 
         // Store the token in SharedPreferences
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', token);
+
+        await prefs.setString('user_id', responseData['id'].toString());
+        await prefs.setString('name', responseData['name']);
+        await prefs.setString('email', responseData['email']);
+        await prefs.setString('role', responseData['role'] ?? 'Other');
 
         debugPrint('Token stored successfully');
-        Get.to(() => const HomePage());
+        Get.offAll(() => const HomePage());
         // Handle successful registration
       } else {
         debugPrint('Signup failed: ${response.statusCode}');
         isError = true;
-        errorMessage = 'Registration failed';
+        errorMessage =
+            jsonDecode(response.body)['detail'] ?? 'Registration failed';
+
+        Get.snackbar(
+          'Signup Error',
+          errorMessage!,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.redAccent,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 3),
+        );
       }
     } catch (e) {
       debugPrint('Error registering user: $e');
       isError = true;
       errorMessage = 'An error occurred';
+      Get.snackbar(
+        'Signup Error',
+        'An error occurred',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3), // Adjust as needed
+      );
     } finally {
       isLoading = false;
       update();

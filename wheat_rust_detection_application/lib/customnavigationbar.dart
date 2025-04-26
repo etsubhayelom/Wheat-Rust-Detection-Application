@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:wheat_rust_detection_application/constants.dart';
 
 class CustomBottomNavBar extends StatefulWidget {
   final int selectedIndex;
@@ -20,8 +21,8 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(50.0)),
-        color: Colors.grey[300], // Background color
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(50.0)),
+        color: AppConstants.navBar, // Background color
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.3),
@@ -45,7 +46,11 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
               label: '',
             ),
             BottomNavigationBarItem(
-              icon: _buildNavItem(2, "assets/person.svg", 'You'),
+              icon: _buildNavItem(2, "assets/chat-bot.svg", 'Chatbot'),
+              label: '',
+            ),
+            BottomNavigationBarItem(
+              icon: _buildNavItem(3, "assets/person.svg", 'You'),
               label: '',
             ),
           ],

@@ -1,16 +1,18 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wheat_rust_detection_application/controllers/post_controllers.dart';
+import 'package:wheat_rust_detection_application/views/edit_profile.dart';
 
 import '../models/post_model.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({Key? key}) : super(key: key);
+  const ProfilePage({super.key});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -49,7 +51,7 @@ class _ProfilePageState extends State<ProfilePage> {
           _userPosts = posts;
         });
       } catch (e) {
-        print("Error fetching user posts: $e");
+        debugPrint("Error fetching user posts: $e");
       }
     }
   }
@@ -200,7 +202,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               height: 10,
                             ),
                             ElevatedButton(
-                              onPressed: () {},
+                              onPressed: () => Get.to(() => EditProfilePage()),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue,
                                 shape: RoundedRectangleBorder(
