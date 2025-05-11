@@ -22,7 +22,14 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _password2Controller = TextEditingController();
 
-  String? selectedRole;
+  String? _role;
+
+  final List<Map<String, String>> roleOptions = [
+    {"value": "admin", "label": "Admin"},
+    {"value": "farmer", "label": "Farmer"},
+    {"value": "researcher", "label": "Agricultural Researcher"},
+    {"value": "expert", "label": "Agricultural Expert"},
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +47,7 @@ class _SignupPageState extends State<SignupPage> {
                 "Sende",
                 style: TextStyle(
                     fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                    fontFamily: 'PlusJakartaSans',
                     color: AppConstants.primary),
               ),
               const SizedBox(height: 10),
@@ -79,23 +86,23 @@ class _SignupPageState extends State<SignupPage> {
               const SizedBox(height: 20),
 
               // Role Dropdown Field
-              DropdownButtonFormField<String>(
+              DropdownButtonFormField(
+                value: _role,
                 decoration: InputDecoration(
                   labelText: "Choose Your Role",
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10)),
                   prefixIcon: const Icon(Icons.person_outline),
                 ),
-                value: selectedRole,
-                items: ["User", "Farmer", "Researcher"]
+                items: roleOptions
                     .map((role) => DropdownMenuItem(
-                          value: role,
-                          child: Text(role),
+                          value: role["value"],
+                          child: Text(role["label"]!),
                         ))
                     .toList(),
                 onChanged: (value) {
                   setState(() {
-                    selectedRole = value;
+                    _role = value.toString();
                   });
                 },
               ),
@@ -144,12 +151,12 @@ class _SignupPageState extends State<SignupPage> {
                       : () {
                           if (_passwordController.text ==
                               _password2Controller.text) {
-                            if (selectedRole != null) {
+                            if (_role != null) {
                               controller.registerUser(
                                 _nameController.text,
                                 _emailController.text,
                                 _passwordController.text,
-                                selectedRole!,
+                                _role!,
                               );
                             } else {
                               Get.snackbar(

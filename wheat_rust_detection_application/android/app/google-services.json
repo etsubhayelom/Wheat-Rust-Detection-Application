@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "699529479501",
+    "project_id": "sende-2f6b5",
+    "storage_bucket": "sende-2f6b5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:699529479501:android:d357ac1286be1831956304",
+        "android_client_info": {
+          "package_name": "com.example.wheat_rust_detection_application"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkY2gFj1WwE2_OwI7mk5Y8JQ_y-5gUBz8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

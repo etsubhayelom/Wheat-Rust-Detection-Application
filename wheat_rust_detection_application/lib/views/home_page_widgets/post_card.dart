@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wheat_rust_detection_application/controllers/post_controllers.dart';
 import 'package:wheat_rust_detection_application/models/post_model.dart';
+import 'package:wheat_rust_detection_application/views/audio_preview.dart';
 
 class PostCard extends StatefulWidget {
   final Post post;
@@ -35,6 +36,11 @@ class _PostCardState extends State<PostCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildImageSection(),
+          if (widget.post.audio != null && widget.post.audio!.isNotEmpty)
+            AudioPreviewPlayer(
+              audioFilePath: widget.post.audio!,
+              onDelete: () {},
+            ),
           const SizedBox(
             height: 20,
           ),

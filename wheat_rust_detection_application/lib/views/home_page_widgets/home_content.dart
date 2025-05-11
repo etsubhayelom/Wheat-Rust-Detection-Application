@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wheat_rust_detection_application/controllers/post_controllers.dart';
@@ -52,6 +53,7 @@ class _HomeContentPageState extends State<HomeContentPage> {
           'Sende',
           style: TextStyle(
             fontSize: 30,
+            fontFamily: 'PlusJakartaSans',
             color: AppConstants.secondary,
           ),
         ),
@@ -114,7 +116,8 @@ class _HomeContentPageState extends State<HomeContentPage> {
                               SizedBox(
                                 width: 200.w,
                                 child: Text(
-                                  'Search in Community',
+                                  AppLocalizations.of(context)!
+                                      .searchInCommunity,
                                   style: TextStyle(
                                     fontSize: 16.sp,
                                     color: Colors.grey,
@@ -142,7 +145,7 @@ class _HomeContentPageState extends State<HomeContentPage> {
                       });
                     },
                     child: Text(
-                      'Posts',
+                      AppLocalizations.of(context)!.posts,
                       style: TextStyle(
                         fontSize: 18.sp,
                         fontWeight: _isPostsSelected
@@ -160,7 +163,7 @@ class _HomeContentPageState extends State<HomeContentPage> {
                       });
                     },
                     child: Text(
-                      'Articles',
+                      AppLocalizations.of(context)!.articles,
                       style: TextStyle(
                         fontSize: 18.sp,
                         fontWeight: !_isPostsSelected
@@ -207,9 +210,10 @@ class _HomeContentPageState extends State<HomeContentPage> {
                 },
               )
             else
-              const Center(
-                child: Text('Articles Coming Soon!'),
-              )
+              Center(
+                  child: Text(
+                AppLocalizations.of(context)!.articlesComingSoon,
+              ))
           ],
         ),
       ),
@@ -220,9 +224,9 @@ class _HomeContentPageState extends State<HomeContentPage> {
             Provider.of<PostController>(context, listen: false).fetchPosts();
           }
         },
-        label: const Text(
-          'Ask Community',
-          style: TextStyle(color: Colors.white, fontSize: 18),
+        label: Text(
+          AppLocalizations.of(context)!.askCommunity,
+          style: const TextStyle(color: Colors.white, fontSize: 18),
         ),
         icon: const Icon(
           Icons.edit_outlined,

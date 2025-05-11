@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:wheat_rust_detection_application/auth/login.dart';
 
 class SplashScreen extends StatefulWidget {
-  static var route;
+  static String route = 'splash-screen';
 
   const SplashScreen({super.key});
 
@@ -59,7 +59,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     height: MediaQuery.of(context).size.height * 0.7,
                     decoration: const BoxDecoration(
                       image: DecorationImage(
-                        image: AssetImage('assets/splash1.png'),
+                        image: AssetImage('assets/images/splash1.png'),
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -97,7 +97,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     height: MediaQuery.of(context).size.height * 0.7,
                     decoration: const BoxDecoration(
                       image: DecorationImage(
-                        image: AssetImage('assets/splash2.png'),
+                        image: AssetImage('assets/images/splash2.png'),
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -133,7 +133,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     height: MediaQuery.of(context).size.height * 0.7,
                     decoration: const BoxDecoration(
                       image: DecorationImage(
-                        image: AssetImage('assets/splash3.png'),
+                        image: AssetImage('assets/images/splash3.png'),
                         fit: BoxFit.cover,
                       ),
                     ),

@@ -6,7 +6,7 @@ import 'package:wheat_rust_detection_application/views/know_the_disease.dart';
 import 'package:wheat_rust_detection_application/views/profile_page.dart';
 
 class HomePage extends StatefulWidget {
-  static var route;
+  static String route = 'home-page';
 
   const HomePage({super.key});
 

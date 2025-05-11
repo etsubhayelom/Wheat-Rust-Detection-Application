@@ -16,6 +16,7 @@ class PostController with ChangeNotifier {
     required String userId,
     String? text,
     List<File>? images,
+    File? audio,
   }) async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -136,16 +137,26 @@ class PostController with ChangeNotifier {
 
   Future<List<Post>> fetchUserPosts(String userId) async {
     try {
-      final response = await _apiService.fetchUserPosts(userId);
-      if (response.statusCode == 200) {
-        final jsonData = jsonDecode(response.body);
-        return (jsonData as List).map((post) => Post.fromJson(post)).toList();
-      } else {
-        throw Exception('Failed to fetch user posts');
-      }
+      return await _apiService.fetchUserPosts(userId);
     } catch (e) {
       debugPrint('Error fetching user posts: $e');
       throw Exception('Error fetching user posts');
+    }
+  }
+
+  Future<List<Comment>> fetchComments({required String postId}) async {
+    try {
+      final response = await _apiService.fetchPostComments(
+          postId); // You need to implement this in ApiService
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonData = jsonDecode(response.body);
+        return jsonData.map((c) => Comment.fromJson(c)).toList();
+      } else {
+        throw Exception('Failed to fetch comments');
+      }
+    } catch (e) {
+      debugPrint('Error fetching comments: $e');
+      throw Exception('Error fetching comments');
     }
   }
 }

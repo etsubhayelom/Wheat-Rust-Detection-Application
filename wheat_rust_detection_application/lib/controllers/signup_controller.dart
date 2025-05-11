@@ -20,7 +20,7 @@ class SignupController extends GetxController {
     update();
 
     try {
-      final response = await _apiService.signup(name, email, password);
+      final response = await _apiService.signup(name, email, password, role);
 
       if (response.statusCode == 201) {
         debugPrint('User registered successfully');

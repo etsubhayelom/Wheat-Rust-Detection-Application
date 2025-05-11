@@ -81,12 +81,14 @@ class Comment {
   final String id;
   final String postId;
   final String userId;
+  final String userName;
   final String text;
 
   const Comment({
     required this.id,
     required this.postId,
     required this.userId,
+    required this.userName,
     required this.text,
   });
 
@@ -95,6 +97,7 @@ class Comment {
       id: json['id'].toString(),
       postId: json['post_id'].toString(),
       userId: json['user'].toString(),
+      userName: json['user_name'].toString(),
       text: json['text'] as String,
     );
   }

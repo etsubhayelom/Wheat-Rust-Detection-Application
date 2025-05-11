@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:wheat_rust_detection_application/constants.dart';
 import 'package:wheat_rust_detection_application/controllers/post_controllers.dart';
 import 'package:wheat_rust_detection_application/models/post_model.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class PostDetailsPage extends StatefulWidget {
   final Post post;
@@ -19,7 +20,20 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
   @override
   void initState() {
     super.initState();
-    _comments = List.from(widget.post.comments);
+    _fetchComments();
+  }
+
+  Future<void> _fetchComments() async {
+    try {
+      final freshComments =
+          await Provider.of<PostController>(context, listen: false)
+              .fetchComments(postId: widget.post.id);
+      setState(() {
+        _comments = freshComments;
+      });
+    } catch (e) {
+      debugPrint('Error fetching comments: $e');
+    }
   }
 
   void _addComment(String commentText) async {
@@ -29,10 +43,8 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
               .createComment(postId: widget.post.id, comment: commentText);
 
       if (newComment != null) {
-        setState(() {
-          _comments.add(newComment);
-          _commentController.clear();
-        });
+        _commentController.clear();
+        await _fetchComments();
       } else {
         // Handle the error
         ScaffoldMessenger.of(context).showSnackBar(
@@ -201,7 +213,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          comment.userId,
+                                          comment.userName,
                                           style: const TextStyle(
                                               fontWeight: FontWeight.bold),
                                         ),
@@ -218,7 +230,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                               vertical: 20, horizontal: 16),
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            "No comments yet",
+                            AppLocalizations.of(context)!.noCommentsYet,
                             style: TextStyle(color: Colors.grey[600]),
                           ),
                         ),
@@ -242,9 +254,9 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                 Expanded(
                   child: TextField(
                     controller: _commentController,
-                    decoration: const InputDecoration(
-                      hintText: "Write your answer",
-                      hintStyle: TextStyle(color: Colors.grey),
+                    decoration: InputDecoration(
+                      hintText: AppLocalizations.of(context)!.writeYourAnswers,
+                      hintStyle: const TextStyle(color: Colors.grey),
                       border: InputBorder.none,
                     ),
                   ),

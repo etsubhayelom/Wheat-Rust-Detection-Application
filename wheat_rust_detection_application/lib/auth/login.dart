@@ -37,7 +37,7 @@ class _LoginPageState extends State<LoginPage> {
                   "Sende",
                   style: TextStyle(
                       fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                      fontFamily: 'PlusJakartaSans',
                       color: AppConstants.primary),
                 ),
                 const SizedBox(height: 10),
