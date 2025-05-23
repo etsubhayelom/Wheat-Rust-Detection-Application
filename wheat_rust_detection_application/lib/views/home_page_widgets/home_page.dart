@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:wheat_rust_detection_application/customnavigationbar.dart';
+import 'package:wheat_rust_detection_application/utils/customnavigationbar.dart';
 import 'package:wheat_rust_detection_application/views/chatbot.dart';
 import 'package:wheat_rust_detection_application/views/home_page_widgets/home_content.dart';
 import 'package:wheat_rust_detection_application/views/know_the_disease.dart';
@@ -21,7 +21,7 @@ class _HomePageState extends State<HomePage>
   final List<Widget> _pages = const [
     HomeContentPage(),
     KnowTheDiseasePage(),
-    ChatbotPage(),
+    ChatBotPage(),
     ProfilePage(),
   ];
 

@@ -11,12 +11,14 @@ import 'package:record/record.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:wheat_rust_detection_application/controllers/post_controllers.dart';
+import 'package:wheat_rust_detection_application/services/gemini_service.dart';
 import 'package:wheat_rust_detection_application/views/audio_preview.dart';
 
 class CreatePostPage extends StatefulWidget {
   final String userId;
+  final XFile? initialImage;
 
-  const CreatePostPage({super.key, required this.userId});
+  const CreatePostPage({super.key, required this.userId, this.initialImage});
 
   @override
   _CreatePostPageState createState() => _CreatePostPageState();
@@ -29,9 +31,45 @@ class _CreatePostPageState extends State<CreatePostPage> {
 
   final List<XFile> _selectedImages = [];
   final PostController _postControllerLogic = PostController();
+  final GeminiService _geminiService = GeminiService();
 
   String? _audioFilePath;
   bool _isRecording = false;
+
+  Future<bool> _checkPost() async {
+    final text = _postController.text;
+    final isRelated = await _geminiService.isWheatRelated(text);
+
+    if (!isRelated) {
+      return await _showWarningDialog();
+    }
+    return true;
+  }
+
+  Future<bool> _showWarningDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text("Unrelated Post"),
+            content: const Text(
+                "This post appears to be unrelated to wheat. Please focus discussions on wheat diseases and related agricultural topics in this forum. Do you still want to post it?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Edit"),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  // You could block or allow posting here
+                },
+                child: const Text("Cancel Post"),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
 
   // Function to pick images from the gallery
   Future<void> _pickImages() async {
@@ -108,6 +146,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
       images: files.isEmpty ? null : files,
       audio: audioFile,
     );
+    debugPrint('Result of createPost: $newPost');
 
     if (newPost != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -126,6 +165,10 @@ class _CreatePostPageState extends State<CreatePostPage> {
     super.initState();
 
     _textFieldFocusNode = FocusNode();
+    // Add initial image if provided
+    if (widget.initialImage != null) {
+      _selectedImages.add(widget.initialImage!);
+    }
     // Request focus after a tiny delay to ensure widget is built
     Future.delayed(Duration.zero, () => _textFieldFocusNode.requestFocus());
   }
@@ -162,8 +205,12 @@ class _CreatePostPageState extends State<CreatePostPage> {
           actions: [
             IconButton(
               icon: const Icon(Icons.check, color: Colors.green),
-              onPressed: () {
-                _handleSubmit();
+              onPressed: () async {
+                bool shouldProceed = await _checkPost();
+
+                if (shouldProceed) {
+                  _handleSubmit();
+                }
               },
             ),
           ],
@@ -203,6 +250,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  const SizedBox(width: 10),
                   IconButton(
                     style: IconButton.styleFrom(
                       backgroundColor: _isRecording ? Colors.red : Colors.white,

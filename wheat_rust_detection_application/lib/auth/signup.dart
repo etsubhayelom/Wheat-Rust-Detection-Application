@@ -21,6 +21,7 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _password2Controller = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
 
   String? _role;
 
@@ -79,6 +80,18 @@ class _SignupPageState extends State<SignupPage> {
                   labelText: "Enter Email",
                   hintText: "Plant@gmail.com",
                   prefixIcon: const Icon(Icons.email_outlined),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              TextField(
+                controller: _phoneController,
+                decoration: InputDecoration(
+                  labelText: "Phone number",
+                  prefixText: '+251 ',
+                  prefixIcon: const Icon(Icons.phone_outlined),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10)),
                 ),
@@ -157,6 +170,7 @@ class _SignupPageState extends State<SignupPage> {
                                 _emailController.text,
                                 _passwordController.text,
                                 _role!,
+                                _phoneController.text,
                               );
                             } else {
                               Get.snackbar(

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,8 @@ import 'package:wheat_rust_detection_application/controllers/notification_contro
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:wheat_rust_detection_application/controllers/profile_controller.dart';
+import 'package:wheat_rust_detection_application/views/home_page_widgets/home_page.dart';
+import 'package:wheat_rust_detection_application/views/profile_page.dart';
 
 const String channelId = 'your_channel_id';
 const String channelName = 'Your Channel Name';
@@ -49,6 +52,8 @@ Future<void> main() async {
 
   // Initialize Firebase
   await Firebase.initializeApp();
+
+  await FirebaseAuth.instance.signInAnonymously();
 
   // Set the background messaging handler early on
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -173,7 +178,13 @@ class _MyAppState extends State<MyApp> {
           debugShowCheckedModeBanner: false,
           theme: ThemeData(fontFamily: 'Poppins'),
           title: 'My App',
-          home: const LoginPage(), // Replace with your home screen
+          initialRoute: '/login',
+          getPages: [
+            GetPage(name: '/login', page: () => const LoginPage()),
+            GetPage(name: '/home', page: () => const HomePage()),
+            GetPage(name: '/profile', page: () => const ProfilePage()),
+            // Add more routes here as needed
+          ], // Replace with your home screen
         );
       },
     );

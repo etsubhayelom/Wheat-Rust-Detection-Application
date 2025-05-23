@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:wheat_rust_detection_application/auth/signup.dart';
 import 'package:wheat_rust_detection_application/constants.dart';
 import 'package:wheat_rust_detection_application/controllers/login_controller.dart';
+import 'package:wheat_rust_detection_application/utils/custom_snack_bar.dart';
 import 'package:wheat_rust_detection_application/views/home_page_widgets/home_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -17,8 +18,62 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final LoginController loginController = Get.put(LoginController());
-  final _emailController = TextEditingController();
+  bool isEmailMode = true;
+
+  final _identifierController = TextEditingController();
   final _pwdController = TextEditingController();
+
+  bool _obscurePassword = true;
+
+  void toggleInputMode() {
+    setState(() {
+      isEmailMode = !isEmailMode;
+      _identifierController.clear();
+    });
+  }
+
+  bool isValidEmail(String email) {
+    final emailRegex = RegExp(
+        r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]+\.[a-zA-Z]+");
+    return emailRegex.hasMatch(email);
+  }
+
+  void login() async {
+    final identifier = _identifierController.text.trim();
+    final password = _pwdController.text;
+
+    if (identifier.isEmpty || password.isEmpty) {
+      CustomSnackBar.show(
+        context,
+        title: 'Error',
+        message: 'Please fill in all fields',
+        isError: true,
+      );
+      return;
+    }
+
+    if (isEmailMode && !isValidEmail(identifier)) {
+      CustomSnackBar.show(
+        context,
+        title: 'Error',
+        message: 'Please enter a valid email address',
+        isError: true,
+      );
+      return;
+    }
+
+    bool success =
+        await loginController.loginUser(identifier, password, isEmailMode);
+
+    if (!success) {
+      CustomSnackBar.show(
+        context,
+        title: 'Login Failed',
+        message: 'Incorrect email/phone or password',
+        isError: true,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,13 +105,31 @@ class _LoginPageState extends State<LoginPage> {
                       color: AppConstants.secondary),
                 ),
                 const SizedBox(height: 30),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: toggleInputMode,
+                      child: Text(
+                        isEmailMode ? 'Switch to Phone' : 'Switch to Email',
+                        style: TextStyle(color: AppConstants.primary),
+                      ),
+                    ),
+                  ],
+                ),
+
                 // Email Field
                 TextField(
-                  controller: _emailController,
+                  controller: _identifierController,
+                  keyboardType: isEmailMode
+                      ? TextInputType.emailAddress
+                      : TextInputType.phone,
                   decoration: InputDecoration(
-                    labelText: "Enter Email",
-                    hintText: "Plant@gmail.com",
-                    prefixIcon: const Icon(Icons.email_outlined),
+                    labelText: isEmailMode ? 'Email' : 'Phone Number',
+                    prefixIcon: Icon(isEmailMode
+                        ? Icons.email_outlined
+                        : Icons.phone_rounded),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10)),
                   ),
@@ -66,15 +139,20 @@ class _LoginPageState extends State<LoginPage> {
                 // Password Field
                 TextField(
                   controller: _pwdController,
-                  obscureText: true,
+                  obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     labelText: "Password",
                     hintText: "********",
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
-                      icon: const Icon(Icons.remove_red_eye_outlined),
-                      onPressed:
-                          () {}, // Add functionality for toggling password visibility
+                      icon: Icon(_obscurePassword
+                          ? Icons.remove_red_eye_outlined
+                          : Icons.remove_red_eye),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      }, // Add functionality for toggling password visibility
                     ),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10)),
@@ -104,19 +182,23 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 20),
                 //login button
                 ElevatedButton(
-                  onPressed: () {
-                    loginController.loginUser(
-                      _emailController.text,
-                      _pwdController.text,
-                    );
-                  },
+                  onPressed: controller.isLoading ? null : login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppConstants.primary,
                     minimumSize:
                         const Size(double.infinity, 50), // Full-width button
                   ),
-                  child: const Text("Login",
-                      style: TextStyle(color: Colors.white, fontSize: 18)),
+                  child: controller.isLoading
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : const Text("Login",
+                          style: TextStyle(color: Colors.white, fontSize: 18)),
                 ),
                 const SizedBox(height: 20),
 

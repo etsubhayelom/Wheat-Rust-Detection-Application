@@ -41,7 +41,7 @@ class Post {
       userId: json['user'].toString(),
       userName: _capitalizeName(json['user_name'] as String),
       description: json['text'] as String?,
-      images: json['image'],
+      images: json['image'] as String?,
       audio: json['audio'] as String?,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])

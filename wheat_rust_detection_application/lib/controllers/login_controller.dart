@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wheat_rust_detection_application/api_services.dart';
+import 'package:wheat_rust_detection_application/services/api_services.dart';
 import 'package:wheat_rust_detection_application/views/home_page_widgets/home_page.dart';
 
 class LoginController extends GetxController {
@@ -14,12 +14,13 @@ class LoginController extends GetxController {
 
   final ApiService _apiService = ApiService();
 
-  Future<void> loginUser(String email, String password) async {
+  Future<bool> loginUser(
+      String identifier, String password, bool isEmail) async {
     isLoading = true;
     update();
 
     try {
-      final response = await _apiService.login(email, password);
+      final response = await _apiService.login(identifier, password, isEmail);
 
       if (response.statusCode == 200) {
         debugPrint('User logged in successfully');
@@ -33,10 +34,9 @@ class LoginController extends GetxController {
         final userEmail = responseData['user']['email'];
         final userRole = responseData['user']['role'] ?? 'Other';
 
-        debugPrint('Access token and user ID stored successfully');
         // Store the token in SharedPreferences
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        debugPrint(prefs.getString('auth_token'));
+
         await prefs.setString('auth_token', accessToken);
         await prefs.setString('refresh_token', refreshToken);
         await prefs.setString('user_id', userId);
@@ -47,7 +47,11 @@ class LoginController extends GetxController {
         debugPrint('Token stored successfully');
 
         Get.offAll(() => const HomePage());
-        // Handle successful login (e.g., save token, navigate to home screen)
+
+        isLoading = false;
+        update();
+
+        return true;
       } else {
         debugPrint('Login failed: ${response.statusCode}');
         isError = true;
@@ -60,6 +64,10 @@ class LoginController extends GetxController {
           colorText: Colors.white,
           duration: const Duration(seconds: 3), // Adjust as needed
         );
+        isLoading = false;
+        update();
+
+        return false;
       }
     } catch (e) {
       debugPrint('Error logging in user: $e');
@@ -73,6 +81,11 @@ class LoginController extends GetxController {
         colorText: Colors.white,
         duration: const Duration(seconds: 3), // Adjust as needed
       );
+
+      isLoading = false;
+      update();
+
+      return false;
     } finally {
       isLoading = false;
       update();

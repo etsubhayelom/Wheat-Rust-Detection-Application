@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:wheat_rust_detection_application/views/results_page.dart';
 
 class KnowTheDiseasePage extends StatefulWidget {
   const KnowTheDiseasePage({super.key});
@@ -17,24 +18,31 @@ class _KnowTheDiseasePageState extends State<KnowTheDiseasePage> {
   Future getImageFromCamera() async {
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
 
-    setState(() {
-      if (pickedFile != null) {
-        _image = File(pickedFile.path);
-      } else {
-        debugPrint('No image selected.');
-      }
-    });
+    if (pickedFile != null) {
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) =>
+                  ResultPage(imageFile: File(pickedFile.path))));
+      debugPrint('Successful');
+    } else {
+      debugPrint('No image selected.');
+    }
   }
 
   Future getImageFromGallery() async {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    setState(() {
-      if (pickedFile != null) {
-        _image = File(pickedFile.path);
-      } else {
-        debugPrint('No image selected.');
-      }
-    });
+
+    if (pickedFile != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ResultPage(imageFile: File(pickedFile.path)),
+        ),
+      );
+    } else {
+      debugPrint('No image selected');
+    }
   }
 
   @override

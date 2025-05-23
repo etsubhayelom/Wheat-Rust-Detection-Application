@@ -1,9 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:wheat_rust_detection_application/models/notification_model.dart';
 import '../controllers/notification_controller.dart';
 
 class NotificationsPage extends StatelessWidget {
   const NotificationsPage({super.key});
+
+  String getNotificationMessage(AppNotification notification) {
+    switch (notification.notificationType) {
+      case 'verification':
+        return '${notification.senderName} sent you a verification notification.';
+      case 'like':
+        return '${notification.senderName} liked your post.';
+      // Add more cases as needed
+      default:
+        return 'You have a new notification.';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,11 +35,11 @@ class NotificationsPage extends StatelessWidget {
             itemBuilder: (context, index) {
               final notification = controller.notifications[index];
               return ListTile(
-                title: Text(notification.title),
-                subtitle: Text(notification.body),
+                title: Text(getNotificationMessage(notification)),
+                subtitle: Text('Received at: ${notification.createdAt}'),
                 trailing: notification.isRead
                     ? null
-                    : Icon(Icons.circle, color: Colors.blue, size: 12),
+                    : const Icon(Icons.circle, color: Colors.blue, size: 12),
                 onTap: () {
                   if (!notification.isRead) {
                     controller.markAsRead(notification.id);

@@ -44,7 +44,9 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
 
       if (newComment != null) {
         _commentController.clear();
-        await _fetchComments();
+        setState(() {
+          _comments.insert(0, newComment);
+        });
       } else {
         // Handle the error
         ScaffoldMessenger.of(context).showSnackBar(
@@ -59,21 +61,6 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
       backgroundColor: Colors.grey[200],
       body: Column(
         children: [
-          // Positioned(
-          //     top: 16.sp,
-          //     left: 16.sp,
-          //     right: 16.sp,
-          //     child: CircleAvatar(
-          //       radius: 22.sp,
-          //       backgroundColor: Colors.grey[800],
-          //       child: IconButton(
-          //           onPressed: () {},
-          //           icon: Icon(
-          //             Icons.arrow_back,
-          //             color: Colors.black,
-          //             size: 22.sp,
-          //           )),
-          //     )),
           ClipRRect(
             borderRadius:
                 const BorderRadius.vertical(bottom: Radius.circular(20)),
@@ -167,7 +154,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                                   color: Colors.black54),
                               onPressed: () {},
                             ),
-                            Text("${widget.post.commentsCount}"),
+                            Text("${_comments.length}"),
                             const SizedBox(width: 10),
                             IconButton(
                               icon: const Icon(Icons.share,
@@ -190,6 +177,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                           itemBuilder: (context, index) {
                             final comment = _comments[index];
                             return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
                               padding: const EdgeInsets.symmetric(
                                   vertical: 8, horizontal: 16),
                               decoration: const BoxDecoration(

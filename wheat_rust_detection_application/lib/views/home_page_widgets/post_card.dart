@@ -7,10 +7,13 @@ class PostCard extends StatefulWidget {
   final Post post;
   final PostController postController;
 
+  final bool isLikedByUser;
+
   const PostCard({
     super.key,
     required this.post,
     required this.postController,
+    this.isLikedByUser = false,
   });
 
   @override
@@ -18,16 +21,26 @@ class PostCard extends StatefulWidget {
 }
 
 class _PostCardState extends State<PostCard> {
-  bool _isLiked = false;
+  late bool _isLiked;
+  late int _likesCount;
+  late int _commentsCount;
 
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   _isLiked = widget.post.likesCount as bool;
-  // }
+  @override
+  void initState() {
+    super.initState();
+    _isLiked = widget.isLikedByUser;
+    _likesCount = widget.post.likesCount;
+    _commentsCount = widget.post.commentsCount;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final hasImage =
+        (widget.post.images != null && widget.post.images!.isNotEmpty);
+    final hasAudio =
+        (widget.post.audio != null && widget.post.audio!.isNotEmpty);
+    final hasDescription = (widget.post.description != null &&
+        widget.post.description!.trim().isNotEmpty);
     return Card(
       margin: const EdgeInsets.all(16),
       elevation: 4,
@@ -35,12 +48,24 @@ class _PostCardState extends State<PostCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildImageSection(),
-          if (widget.post.audio != null && widget.post.audio!.isNotEmpty)
-            AudioPreviewPlayer(
-              audioFilePath: widget.post.audio!,
-              onDelete: () {},
-            ),
+          if (hasImage)
+            Image.network(
+              widget.post.images!,
+              height: 200,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+            )
+          else if (hasAudio)
+            Padding(
+              padding: const EdgeInsets.only(top: 16.0),
+              child: AudioPreviewPlayer(
+                audioFilePath: widget.post.audio!,
+                onDelete: () {},
+              ),
+            )
+          else
+            _buildPlaceholder(),
           const SizedBox(
             height: 20,
           ),
@@ -75,43 +100,34 @@ class _PostCardState extends State<PostCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Description Section
-                Text(
-                  widget.post.description ??
-                      'No description', // Access the text property
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade800,
+                if (hasDescription)
+                  Text(
+                    widget.post.description!,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade800,
+                    ),
+                  )
+                else if (!hasImage && !hasAudio)
+                  const Text(
+                    'No description',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
                   ),
-                ),
+
                 const SizedBox(height: 10),
+
                 // Action Buttons (like, comment, share)
                 const Divider(),
                 _buildActionButtons(),
-                // Comments Section
-                _buildCommentsSection(),
               ],
             ),
           ),
         ],
       ),
     );
-  }
-
-  Widget _buildImageSection() {
-    final imageUrl = widget.post.images ?? '';
-
-    if (imageUrl.isNotEmpty) {
-      return Image.network(
-        imageUrl,
-        height: 200,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return _buildPlaceholder();
-        },
-      );
-    }
-    return _buildPlaceholder();
   }
 
   Widget _buildPlaceholder() {
@@ -130,35 +146,54 @@ class _PostCardState extends State<PostCard> {
         IconButton(
           icon: Icon(
             _isLiked ? Icons.thumb_up : Icons.thumb_up_alt_outlined,
-            color: _isLiked ? Colors.blue : null,
+            color: _isLiked ? Colors.red : null,
           ),
           onPressed: () {
             if (_isLiked) {
               widget.postController.dislikePost(widget.post.id);
+              setState(() {
+                _likesCount = (_likesCount > 0) ? _likesCount - 1 : 0;
+                _isLiked = false;
+              });
             } else {
               widget.postController.likePost(widget.post.id);
+              setState(() {
+                _likesCount += 1;
+                _isLiked = true;
+              });
             }
-            setState(() {
-              _isLiked = !_isLiked;
-            });
           },
         ),
+        const SizedBox(width: 4),
+        Text('$_likesCount'),
         IconButton(
-          icon: const Icon(Icons.comment_outlined),
-          onPressed: () {
-            // // Navigate to comment page or show comment dialog
-            // showDialog(
-            //   context: context,
-            //   builder: (context) => CommentDialog(
-            //     postId: widget.post.id,
-            //     postController: widget.postController,
-            //   ),
-            // );
+            icon: const Icon(Icons.comment_outlined),
+            onPressed: _buildCommentsSection),
+        const SizedBox(width: 4),
+        Text('$_commentsCount'),
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert),
+          onSelected: (value) {
+            if (value == 'save') {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Post saved')),
+              );
+            } else if (value == 'report') {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Post reported')),
+              );
+            }
           },
-        ),
-        IconButton(
-          icon: const Icon(Icons.share_outlined),
-          onPressed: () {},
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+            const PopupMenuItem<String>(
+              value: 'save',
+              child: Text('Save'),
+            ),
+            const PopupMenuItem<String>(
+              value: 'report',
+              child: Text('Report'),
+            ),
+          ],
         ),
       ],
     );
@@ -166,64 +201,24 @@ class _PostCardState extends State<PostCard> {
 
   // Widget to build the comments section
   Widget _buildCommentsSection() {
+    if (widget.post.comments.isEmpty) {
+      return const SizedBox.shrink();
+    }
     return Column(
-      children: (widget.post.comments).map((comment) {
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: widget.post.comments.map((comment) {
         // Handle null comments
-        return Text(
-          comment.text,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
+        return Padding(
+          padding: const EdgeInsets.only(top: 4.0),
+          child: Text(
+            '${comment.userName}: ${comment.text}',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
           ),
         );
       }).toList(),
     );
   }
 }
-
-// class CommentDialog extends StatefulWidget {
-//   final String postId;
-//   final PostController postController;
-
-//   const CommentDialog({
-//     super.key,
-//     required this.postId,
-//     required this.postController,
-//   });
-
-//   @override
-//   _CommentDialogState createState() => _CommentDialogState();
-// }
-
-// class _CommentDialogState extends State<CommentDialog> {
-//   final TextEditingController _commentController = TextEditingController();
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Dialog(
-//       child: Padding(
-//         padding: const EdgeInsets.all(16.0),
-//         child: Column(
-//           mainAxisSize: MainAxisSize.min,
-//           children: [
-//             TextField(
-//               controller: _commentController,
-//               decoration: const InputDecoration(hintText: 'Write a comment'),
-//             ),
-//             const SizedBox(height: 8),
-//             ElevatedButton(
-//               onPressed: () async {
-//                 await widget.postController.createComment(
-//                   widget.postId,
-//                   _commentController.text,
-//                 );
-//                 Navigator.pop(context);
-//               },
-//               child: const Text('Post Comment'),
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }

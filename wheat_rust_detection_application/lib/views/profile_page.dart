@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -7,13 +8,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:wheat_rust_detection_application/api_services.dart';
+import 'package:wheat_rust_detection_application/services/api_services.dart';
+import 'package:wheat_rust_detection_application/auth/login.dart';
 import 'package:wheat_rust_detection_application/constants.dart';
 import 'package:wheat_rust_detection_application/controllers/post_controllers.dart';
 import 'package:wheat_rust_detection_application/controllers/profile_controller.dart';
+import 'package:wheat_rust_detection_application/views/create_articles_page.dart';
 
 import 'package:wheat_rust_detection_application/views/edit_profile.dart';
-import 'package:wheat_rust_detection_application/views/posting_page.dart';
 
 import '../models/post_model.dart';
 
@@ -25,7 +27,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final ProfileController _profileController = Get.put(ProfileController());
   Map<String, dynamic>? _userProfile;
   final ImagePicker _picker = ImagePicker();
@@ -78,13 +80,13 @@ class _ProfilePageState extends State<ProfilePage>
       _errorProfile = null;
     });
     try {
+      await _profileController.fetchVerificationStatus();
       final userProfile = await ApiService().fetchUserProfile();
       if (!mounted) return;
       setState(() {
         _userProfile = userProfile;
         _isLoadingProfile = false;
       });
-      await _profileController.fetchVerificationStatus();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -191,6 +193,58 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
+  Future<void> _logout(BuildContext context) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final refreshToken = prefs.getString('refresh_token');
+    debugPrint('Refresh token form shared preferences: $refreshToken');
+
+    final response = await ApiService().logout(refreshToken);
+    debugPrint('api response: ${response.body}');
+
+    if (response.statusCode == 205) {
+      // Logout successful
+      await prefs.clear();
+      Get.offAll(() => const LoginPage());
+    } else {
+      // Logout failed, show error
+      String errorMsg = 'Logout failed. Please try again.';
+      try {
+        final body = jsonDecode(response.body);
+        if (body['detail'] != null) errorMsg = body['detail'];
+      } catch (_) {}
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMsg)),
+      );
+    }
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Logout'),
+          content: const Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(); // Close dialog, stay on page
+              },
+              child: const Text('No'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop(); // Close dialog
+                await _logout(context);
+              },
+              child: const Text('Yes'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoadingProfile) {
@@ -203,6 +257,7 @@ class _ProfilePageState extends State<ProfilePage>
     final profileImageUrl = _userProfile?['profile_image'] ?? '';
     final userName = _userProfile?['name'] ?? "Unknown User";
     final userEmail = _userProfile?['email'] ?? "Unknown Email";
+
     final isApproved = _profileController.isApproved.value;
 
     return Scaffold(
@@ -233,13 +288,32 @@ class _ProfilePageState extends State<ProfilePage>
                       // App title
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: Text(
-                          "Sende",
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontFamily: 'PlusJakartaSans',
-                            color: Colors.green[700],
-                          ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Sende",
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontFamily: 'PlusJakartaSans',
+                                color: Colors.green[700],
+                              ),
+                            ),
+                            PopupMenuButton<String>(
+                                icon: const Icon(
+                                  Icons.more_vert,
+                                  color: Colors.black,
+                                ),
+                                onSelected: (value) {
+                                  _showLogoutDialog(context);
+                                },
+                                itemBuilder: (BuildContext context) => [
+                                      const PopupMenuItem<String>(
+                                        value: 'logout',
+                                        child: Text('Logout'),
+                                      )
+                                    ])
+                          ],
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -387,7 +461,7 @@ class _ProfilePageState extends State<ProfilePage>
                     if (isApproved)
                       Tab(text: AppLocalizations.of(context)!.articles),
                   ],
-                  labelStyle: TextStyle(
+                  labelStyle: const TextStyle(
                       fontSize: 18,
                       color: Colors.black,
                       fontWeight: FontWeight.bold),
@@ -469,9 +543,20 @@ class _ProfilePageState extends State<ProfilePage>
       ),
       floatingActionButton: isApproved
           ? FloatingActionButton.extended(
-              onPressed: () {
-                Get.to(() => CreatePostPage(userId: ''));
-              },
+              onPressed: _profileController.isApproved.value
+                  ? () async {
+                      SharedPreferences prefs =
+                          await SharedPreferences.getInstance();
+                      final userId = prefs.getString('user_id');
+                      if (userId != null) {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    CreateArticlePage(userId: userId)));
+                      }
+                    }
+                  : null,
               icon: const Icon(Icons.add),
               label: const Text('Add Article'),
               backgroundColor: hexToColor('FFD700'),

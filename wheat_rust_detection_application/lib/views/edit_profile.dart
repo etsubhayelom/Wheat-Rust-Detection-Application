@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'package:wheat_rust_detection_application/api_services.dart';
+import 'package:wheat_rust_detection_application/services/api_services.dart';
 import 'package:wheat_rust_detection_application/constants.dart';
 import 'package:wheat_rust_detection_application/views/review_page.dart';
 
@@ -18,7 +18,6 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = true;
-  bool _isSaving = false;
   String? _error;
 
   String? lastName;
@@ -30,7 +29,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final ImagePicker _picker = ImagePicker();
   final ApiService apiService = ApiService();
 
-  final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
 
   @override
@@ -49,7 +47,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       setState(() {
         _name = userProfile['name'] ?? '';
         _email = userProfile['email'] ?? '';
-        _phoneNumber = userProfile['phone_number'] ?? '';
+        _phoneNumber = userProfile['phone'] ?? '';
         _role = userProfile['role'] ?? '';
         _isLoading = false;
       });
@@ -65,9 +63,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
 
-    setState(() {
-      _isSaving = true;
-    });
+    setState(() {});
 
     try {
       final response = await ApiService().updateProfile(
@@ -92,9 +88,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         SnackBar(content: Text('Error: $e')),
       );
     } finally {
-      setState(() {
-        _isSaving = false;
-      });
+      setState(() {});
     }
   }
 
@@ -156,7 +150,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       debugPrint('Selected PDF file: $pdfFile');
       try {
         final response =
-            await apiService.uploadProofOfQualification(pdfFile, _role!);
+            await apiService.uploadProofOfQualification(pdfFile, _role);
         if (response.statusCode == 200 || response.statusCode == 201) {
           Navigator.push(
             context,

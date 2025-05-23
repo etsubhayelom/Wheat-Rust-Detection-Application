@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wheat_rust_detection_application/api_services.dart';
+import 'package:wheat_rust_detection_application/services/api_services.dart';
 import 'package:wheat_rust_detection_application/models/post_model.dart';
 
 class PostController with ChangeNotifier {
@@ -31,12 +32,20 @@ class PostController with ChangeNotifier {
         userId,
         text: text,
         image: images,
+        audio: audio,
         accessToken: accessToken,
       );
+
+      debugPrint('API Response status: ${response.statusCode}');
+      debugPrint('API Response body: ${response.body}');
       if (response.statusCode == 401) {
         // Token might be expired, try to refresh
         debugPrint('Access token expired, attempting to refresh');
         final refreshResponse = await _apiService.refreshToken(refreshToken);
+
+        debugPrint(
+            'Refresh token response status: ${refreshResponse.statusCode}');
+        debugPrint('Refresh token response body: ${refreshResponse.body}');
 
         if (refreshResponse.statusCode == 200) {
           final newAccessToken = jsonDecode(refreshResponse.body)['access'];
@@ -48,8 +57,12 @@ class PostController with ChangeNotifier {
             userId,
             text: text,
             image: images,
+            audio: audio,
             accessToken: newAccessToken, // Use new access token
           );
+
+          debugPrint('Retried API Response status: ${response.statusCode}');
+          debugPrint('Retried API Response body: ${response.body}');
         } else {
           // Refresh failed, redirect user to login
           debugPrint('Failed to refresh token: ${refreshResponse.statusCode}');
@@ -121,6 +134,7 @@ class PostController with ChangeNotifier {
   Future<List<Post>> fetchPosts() async {
     try {
       final response = await _apiService.fetchPosts();
+      debugPrint('post response:{$response.body}');
       if (response.statusCode == 200) {
         final List<dynamic> jsonData = jsonDecode(response.body);
         _posts = jsonData.map((post) => Post.fromJson(post)).toList();
@@ -136,8 +150,12 @@ class PostController with ChangeNotifier {
   }
 
   Future<List<Post>> fetchUserPosts(String userId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userId = prefs.getString('user_id');
     try {
-      return await _apiService.fetchUserPosts(userId);
+      final response = await _apiService.fetchUserPosts(userId!);
+      debugPrint('user posts: {$response.body}');
+      return response;
     } catch (e) {
       debugPrint('Error fetching user posts: $e');
       throw Exception('Error fetching user posts');
@@ -148,6 +166,7 @@ class PostController with ChangeNotifier {
     try {
       final response = await _apiService.fetchPostComments(
           postId); // You need to implement this in ApiService
+      debugPrint('Comments: ${response.body}');
       if (response.statusCode == 200) {
         final List<dynamic> jsonData = jsonDecode(response.body);
         return jsonData.map((c) => Comment.fromJson(c)).toList();
@@ -157,6 +176,37 @@ class PostController with ChangeNotifier {
     } catch (e) {
       debugPrint('Error fetching comments: $e');
       throw Exception('Error fetching comments');
+    }
+  }
+
+  // In post_controllers.dart
+
+  Future<void> createArticle({
+    required String userId,
+    required String text,
+    File? file,
+  }) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString('auth_token');
+      if (accessToken == null) {
+        throw Exception('No access token found');
+      }
+
+      final response = await _apiService.postArticle(
+          userId: userId, text: text, file: file, accessToken: accessToken);
+      debugPrint('response of articles:$response');
+
+      if (response.statusCode == 201) {
+        fetchPosts(); // Refresh posts
+      } else {
+        final respStr = await response.stream.bytesToString();
+        debugPrint('POST ARTICLE RESPONSE: ${response.statusCode} $respStr');
+        throw Exception('Failed to post article:$respStr');
+      }
+    } catch (e) {
+      debugPrint('Error posting article: $e');
+      rethrow;
     }
   }
 }

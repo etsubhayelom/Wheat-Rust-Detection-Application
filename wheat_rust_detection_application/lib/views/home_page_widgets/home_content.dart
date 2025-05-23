@@ -6,9 +6,11 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wheat_rust_detection_application/controllers/post_controllers.dart';
+import 'package:wheat_rust_detection_application/views/home_page_widgets/articles_card.dart';
 import 'package:wheat_rust_detection_application/views/home_page_widgets/post_card.dart';
 import 'package:wheat_rust_detection_application/views/home_page_widgets/post_details.dart';
 import 'package:wheat_rust_detection_application/views/notifications.dart';
+import 'package:wheat_rust_detection_application/views/search_results.dart';
 import 'package:wheat_rust_detection_application/views/settings.dart';
 
 import '../../constants.dart';
@@ -39,7 +41,9 @@ class _HomeContentPageState extends State<HomeContentPage> {
           ''; // Load the user ID, default to empty string if not found
     });
 
-    Provider.of<PostController>(context, listen: false).fetchPosts();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<PostController>(context, listen: false).fetchPosts();
+    });
   }
 
   @override
@@ -92,43 +96,48 @@ class _HomeContentPageState extends State<HomeContentPage> {
                   left: 20, right: 20, bottom: 10, top: 10),
               child: Row(
                 children: [
+                  // Inside your build method, replace the GestureDetector in the search bar:
                   Expanded(
-                      flex: 3,
-                      child: GestureDetector(
-                        onTap: () {},
-                        child: Container(
-                          height: 50.h,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(25.r),
-                            border: Border.all(color: Colors.grey, width: 0.5),
+                    flex: 3,
+                    child: Container(
+                      height: 50.h,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(25.r),
+                        border: Border.all(color: Colors.grey, width: 0.5),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 20.w),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.search_rounded, color: Colors.grey),
+                          SizedBox(width: 10.w),
+                          Expanded(
+                            child: TextField(
+                              textInputAction: TextInputAction.search,
+                              onSubmitted: (query) {
+                                if (query.trim().isNotEmpty) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => SearchResultsPage(
+                                          query: query.trim()),
+                                    ),
+                                  );
+                                }
+                              },
+                              decoration: InputDecoration(
+                                hintText: AppLocalizations.of(context)!
+                                    .searchInCommunity,
+                                border: InputBorder.none,
+                              ),
+                              style: TextStyle(
+                                  fontSize: 16.sp, color: Colors.black),
+                            ),
                           ),
-                          padding: EdgeInsets.symmetric(horizontal: 20.w),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.search_rounded,
-                                color: Colors.grey,
-                              ),
-                              SizedBox(
-                                width: 10.w,
-                              ),
-                              SizedBox(
-                                width: 200.w,
-                                child: Text(
-                                  AppLocalizations.of(context)!
-                                      .searchInCommunity,
-                                  style: TextStyle(
-                                    fontSize: 16.sp,
-                                    color: Colors.grey,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ))
+                        ],
+                      ),
+                    ),
+                  )
                 ],
               ),
             ),
@@ -210,10 +219,25 @@ class _HomeContentPageState extends State<HomeContentPage> {
                 },
               )
             else
-              Center(
-                  child: Text(
-                AppLocalizations.of(context)!.articlesComingSoon,
-              ))
+              Consumer<PostController>(
+                builder: (context, postController, child) {
+                  final articles = postController.posts
+                      .where((post) => post.postType == 'article')
+                      .toList();
+                  if (articles.isEmpty) {
+                    return const Center(child: Text('No articles yet'));
+                  }
+                  return Column(
+                    children: articles.map((article) {
+                      return ArticleCard(
+                        title: article.title ?? "No Title",
+                        text: article.description ?? "",
+                        onDownload: () {},
+                      );
+                    }).toList(),
+                  );
+                },
+              )
           ],
         ),
       ),

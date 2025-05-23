@@ -1,14 +1,18 @@
 class AppNotification {
   final int id;
-  final String title;
-  final String body;
+  final String senderName;
+  final String notificationType;
+  final int? post;
+  final int? comment;
   final bool isRead;
   final DateTime createdAt;
 
   AppNotification({
     required this.id,
-    required this.title,
-    required this.body,
+    required this.senderName,
+    required this.notificationType,
+    this.post,
+    this.comment,
     required this.isRead,
     required this.createdAt,
   });
@@ -16,8 +20,10 @@ class AppNotification {
   factory AppNotification.fromJson(Map<String, dynamic> json) {
     return AppNotification(
       id: json['id'],
-      title: json['title'] ?? '',
-      body: json['body'] ?? '',
+      senderName: json['sender_name'] ?? '',
+      notificationType: json['notification_type'] ?? '',
+      post: json['post'],
+      comment: json['comment'],
       isRead: json['is_read'] ?? false,
       createdAt: DateTime.parse(json['created_at']),
     );
