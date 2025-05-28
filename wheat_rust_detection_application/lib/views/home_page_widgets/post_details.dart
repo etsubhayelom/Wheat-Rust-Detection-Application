@@ -28,9 +28,9 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
       final freshComments =
           await Provider.of<PostController>(context, listen: false)
               .fetchComments(postId: widget.post.id);
-      setState(() {
-        _comments = freshComments;
-      });
+      if (mounted) {
+        setState(() => _comments = freshComments);
+      }
     } catch (e) {
       debugPrint('Error fetching comments: $e');
     }

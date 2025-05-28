@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wheat_rust_detection_application/main.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:wheat_rust_detection_application/views/guidelines.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -135,6 +136,29 @@ class _SettingsPageState extends State<SettingsPage> {
                   answerNotification = val;
                 });
               },
+            ),
+            const Divider(),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const GuidelinesPage()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green, // Match your theme color
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                AppLocalizations.of(context)!
+                    .viewGuidelines, // Add this key to your localization files
+                style: const TextStyle(fontSize: 16),
+              ),
             ),
           ],
         ),

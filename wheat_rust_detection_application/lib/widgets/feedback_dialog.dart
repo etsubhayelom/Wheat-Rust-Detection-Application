@@ -15,6 +15,7 @@ class FeedbackDialog extends StatefulWidget {
 
 class _FeedbackDialogState extends State<FeedbackDialog> {
   int _rating = 3;
+  // ignore: unused_field
   String _comment = '';
   String _aiAccuracy = 'Accurate';
   final _commentController = TextEditingController();

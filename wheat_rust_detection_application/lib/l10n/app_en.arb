@@ -32,5 +32,14 @@
 "chatBot":"Chat Bot",
 "you":"You",
 "noCommentsYet":"No Comments Yet",
-"writeYourAnswers":"Write your answers"
+"writeYourAnswers":"Write your answers",
+"logOut":"Log out",
+"areYouSureYouWantToLogout":"Are you sure you want to logout?",
+"no":"No",
+"yes":"Yes",
+"expert":"Expert",
+"addArticle":"Add article",
+"saved":"Saved",
+"noSavedPosts": "No saved posts!",
+"viewGuidelines":"View Guidelines"
 }

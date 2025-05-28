@@ -5,6 +5,7 @@ class Post {
   final String? description;
   final String? images;
   final String? audio;
+  final String? file;
   final DateTime? createdAt;
   final int likesCount;
   final int commentsCount;
@@ -20,6 +21,7 @@ class Post {
     this.audio,
     this.description,
     this.images,
+    this.file,
     this.createdAt,
     required this.commentsCount,
     required this.likesCount,
@@ -41,8 +43,9 @@ class Post {
       userId: json['user'].toString(),
       userName: _capitalizeName(json['user_name'] as String),
       description: json['text'] as String?,
-      images: json['image'] as String?,
-      audio: json['audio'] as String?,
+      images: json['image_url'] as String?,
+      audio: json['audio_url'] as String?,
+      file: json['file_url'] as String?,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : null,

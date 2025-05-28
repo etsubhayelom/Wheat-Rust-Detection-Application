@@ -3,83 +3,105 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wheat_rust_detection_application/services/api_services.dart';
 import 'package:wheat_rust_detection_application/models/post_model.dart';
+import 'package:wheat_rust_detection_application/services/cloudinary.dart';
 
 class PostController with ChangeNotifier {
   final ApiService _apiService = ApiService();
   List<Post> _posts = [];
   List<Post> get posts => _posts;
+  List<Post> _savedPosts = [];
+  List<Post> get savedPosts => _savedPosts;
+  bool isloading = false;
 
   Future<Post?> createPost({
     required String userId,
     String? text,
     List<File>? images,
     File? audio,
+    File? file,
+    String? postType,
+    String? title,
   }) async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? accessToken = prefs.getString('auth_token');
       String? refreshToken = prefs.getString('refresh_token');
+
       if (accessToken == null || refreshToken == null) {
         // Handle case where tokens are not available
         debugPrint('Tokens not found. Please log in again.');
         return null;
       }
-      http.Response response = await _apiService.createPost(
-        userId,
-        text: text,
-        image: images,
-        audio: audio,
-        accessToken: accessToken,
-      );
 
-      debugPrint('API Response status: ${response.statusCode}');
-      debugPrint('API Response body: ${response.body}');
-      if (response.statusCode == 401) {
-        // Token might be expired, try to refresh
-        debugPrint('Access token expired, attempting to refresh');
-        final refreshResponse = await _apiService.refreshToken(refreshToken);
-
-        debugPrint(
-            'Refresh token response status: ${refreshResponse.statusCode}');
-        debugPrint('Refresh token response body: ${refreshResponse.body}');
-
-        if (refreshResponse.statusCode == 200) {
-          final newAccessToken = jsonDecode(refreshResponse.body)['access'];
-          await prefs.setString('auth_token', newAccessToken);
-          debugPrint('Access token refreshed successfully');
-
-          // Retry the original request with the new access token
-          response = await _apiService.createPost(
-            userId,
-            text: text,
-            image: images,
-            audio: audio,
-            accessToken: newAccessToken, // Use new access token
-          );
-
-          debugPrint('Retried API Response status: ${response.statusCode}');
-          debugPrint('Retried API Response body: ${response.body}');
-        } else {
-          // Refresh failed, redirect user to login
-          debugPrint('Failed to refresh token: ${refreshResponse.statusCode}');
-          // Redirect to login page
-          return null;
+      String? imageUrl;
+      if (images != null && images.isNotEmpty) {
+        imageUrl = await uploadToCloudinary(images.first, "image");
+        if (imageUrl == null) {
+          debugPrint('Image upload failed');
+          return null; // or show error to user
         }
       }
+      String? audioUrl;
+      if (audio != null) {
+        audioUrl = await uploadToCloudinary(audio, "auto");
+        if (audioUrl == null) {
+          debugPrint('Audio upload failed');
+          return null; // or show error to user
+        }
+      }
+
+      String? fileUrl;
+      if (file != null) {
+        fileUrl = await uploadToCloudinary(file, "raw");
+      }
+      final response = await _apiService.createPostWithImageUrls(
+        userId,
+        text: text,
+        imageUrl: imageUrl,
+        audioUrl: audioUrl,
+        fileUrl: fileUrl,
+        postType: postType,
+        title: title,
+        accessToken: accessToken,
+      );
+      debugPrint('Uploaded audio Url: $audioUrl');
 
       if (response.statusCode == 201) {
         final jsonData = jsonDecode(response.body);
         fetchPosts();
         return Post.fromJson(jsonData);
-      } else {
-        debugPrint('Failed to create post: ${response.statusCode}');
-        debugPrint('Response body: ${response.body}');
-        return null;
+      } else if (response.statusCode == 401) {
+        final refreshResponse = await _apiService.refreshToken(refreshToken);
+        if (refreshResponse.statusCode == 200) {
+          final newAccessToken = jsonDecode(refreshResponse.body)['access'];
+          await prefs.setString('auth_token', newAccessToken);
+
+          // Retry with new access token
+          final response = await _apiService.createPostWithImageUrls(
+            userId,
+            text: text,
+            imageUrl: imageUrl,
+            audioUrl: audioUrl,
+            fileUrl: fileUrl,
+            postType: postType,
+            title: title,
+            accessToken: newAccessToken,
+          );
+
+          if (response.statusCode == 201) {
+            final jsonData = jsonDecode(response.body);
+            fetchPosts();
+            return Post.fromJson(jsonData);
+          }
+        }
       }
+
+      debugPrint('Failed to create post: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+      return null;
     } catch (e) {
       debugPrint('Error creating post: $e');
       return null;
@@ -132,6 +154,8 @@ class PostController with ChangeNotifier {
   }
 
   Future<List<Post>> fetchPosts() async {
+    isloading = true;
+    notifyListeners();
     try {
       final response = await _apiService.fetchPosts();
       debugPrint('post response:{$response.body}');
@@ -146,16 +170,19 @@ class PostController with ChangeNotifier {
     } catch (e) {
       debugPrint('Error fetching posts: $e');
       throw Exception('Error fetching posts');
+    } finally {
+      isloading = false;
     }
   }
 
-  Future<List<Post>> fetchUserPosts(String userId) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? userId = prefs.getString('user_id');
+  Future<List<Post>> fetchUserPosts() async {
     try {
-      final response = await _apiService.fetchUserPosts(userId!);
-      debugPrint('user posts: {$response.body}');
-      return response;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? userId = prefs.getString('user_id');
+      if (userId == null) throw Exception('User not logged in');
+
+      final List<Post> posts = await _apiService.fetchUserPosts(userId);
+      return posts;
     } catch (e) {
       debugPrint('Error fetching user posts: $e');
       throw Exception('Error fetching user posts');
@@ -184,6 +211,7 @@ class PostController with ChangeNotifier {
   Future<void> createArticle({
     required String userId,
     required String text,
+    required String title,
     File? file,
   }) async {
     try {
@@ -194,19 +222,73 @@ class PostController with ChangeNotifier {
       }
 
       final response = await _apiService.postArticle(
-          userId: userId, text: text, file: file, accessToken: accessToken);
-      debugPrint('response of articles:$response');
+          userId: userId,
+          text: text,
+          title: title,
+          file: file,
+          accessToken: accessToken);
+      final respStr = await response.stream.bytesToString();
+      debugPrint('POST ARTICLE RESPONSE: ${response.statusCode} $respStr');
 
       if (response.statusCode == 201) {
         fetchPosts(); // Refresh posts
       } else {
-        final respStr = await response.stream.bytesToString();
-        debugPrint('POST ARTICLE RESPONSE: ${response.statusCode} $respStr');
         throw Exception('Failed to post article:$respStr');
       }
     } catch (e) {
       debugPrint('Error posting article: $e');
       rethrow;
     }
+  }
+
+  Future<bool> savePost(String postId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString('auth_token');
+    if (accessToken == null) return false;
+
+    final response = await _apiService.savePost(postId, accessToken);
+    debugPrint('Response: ${response.body}');
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> unsavePost(String postId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString('auth_token');
+    if (accessToken == null) return false;
+
+    final response = await _apiService.unsavePost(postId, accessToken);
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> fetchSavedPosts() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString('auth_token');
+    String? userId = prefs.getString('user_id');
+    if (accessToken == null || userId == null) return;
+
+    final response = await _apiService.fetchSavedPosts(userId, accessToken);
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonData = jsonDecode(response.body);
+      _savedPosts = jsonData.map((post) => Post.fromJson(post)).toList();
+      notifyListeners();
+    } else {
+      debugPrint('Failed to fetch saved posts: ${response.statusCode}');
+    }
+  }
+
+  Future<bool> deletePost(String postId) async {
+    final response = await _apiService.deletePost(postId);
+    if (response.statusCode == 204 || response.statusCode == 200) {
+      _posts.removeWhere((post) => post.id.toString() == postId);
+      notifyListeners();
+      return true;
+    }
+    return false;
   }
 }

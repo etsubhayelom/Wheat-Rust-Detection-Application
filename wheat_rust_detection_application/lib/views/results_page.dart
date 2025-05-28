@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as img;
 import 'package:wheat_rust_detection_application/services/api_services.dart';
-import 'package:wheat_rust_detection_application/views/feedback_dialog.dart';
+import 'package:wheat_rust_detection_application/widgets/feedback_dialog.dart';
 import 'package:wheat_rust_detection_application/views/posting_page.dart'; // Add image package for image processing
 
 class ResultPage extends StatefulWidget {
@@ -33,10 +33,10 @@ class _ResultPageState extends State<ResultPage> {
 
   // final List<String> _wheatLabels = ["not_wheat", "wheat"];
   final List<String> _rustLabels = [
-    "Healthy",
-    "Yellow Rust",
+    "Black Rust",
     "Brown Rust",
-    "Black Rust"
+    "Healthy",
+    "Yellow Rust"
   ];
 
   final Map<String, dynamic> _diagnosisInfo = {
@@ -107,9 +107,7 @@ class _ResultPageState extends State<ResultPage> {
 
   Future<void> _loadModelAndRunInference() async {
     try {
-      // Load both models from assets
-      // _wheatInterpreter =
-      //     await Interpreter.fromAsset('assets/models/wheat_classifier.tflite');
+      debugPrint("starting model loading and inference");
       _rustInterpreter =
           await Interpreter.fromAsset('assets/models/wheat_rust.tflite');
 
@@ -117,21 +115,6 @@ class _ResultPageState extends State<ResultPage> {
         _isProcessing = true;
       });
 
-      // final isWheat = await _checkIfWheat(widget.imageFile);
-
-      // if (isWheat) {
-      //   setState(() {
-      //     _resultText = "Wheat detected! Analayzing for rust";
-      //     _isProcessing = true;
-      //   });
-
-      // } else {
-      //   setState(() {
-      //     _resultText =
-      //         "Not a wheat plant!\nPlease capture a clear image of wheat leaves.";
-      //     _isProcessing = false;
-      //   });
-      // }
       await _runRustInference(widget.imageFile);
     } catch (e) {
       setState(() {
@@ -140,69 +123,8 @@ class _ResultPageState extends State<ResultPage> {
     }
   }
 
-  // Future<bool> _checkIfWheat(File imageFile) async {
-  //   // Load image bytes and decode
-  //   final bytes = await imageFile.readAsBytes();
-  //   img.Image? image = img.decodeImage(bytes);
-  //   if (image == null) {
-  //     throw Exception("Cannot decode image");
-  //   }
-
-  //   // Get model input size (e.g., [1, 224, 224, 3])
-  //   final inputShape = _wheatInterpreter.getInputTensor(0).shape;
-  //   final inputHeight = inputShape[1];
-  //   final inputWidth = inputShape[2];
-  //   final inputChannels = inputShape[3];
-
-  //   // Resize image to model input size
-  //   img.Image resizedImage =
-  //       img.copyResize(image, width: inputWidth, height: inputHeight);
-
-  //   // Normalize and convert image to input tensor (Float32List)
-  //   // Assuming model expects float32 input normalized to [0,1]
-  //   var input = Float32List(inputHeight * inputWidth * inputChannels);
-  //   int pixelIndex = 0;
-  //   for (int y = 0; y < inputHeight; y++) {
-  //     for (int x = 0; x < inputWidth; x++) {
-  //       int pixel = resizedImage.getPixel(x, y);
-  //       // Extract RGB channels and normalize
-  //       input[pixelIndex++] = (img.getRed(pixel)) / 255.0;
-  //       input[pixelIndex++] = (img.getGreen(pixel)) / 255.0;
-  //       input[pixelIndex++] = (img.getBlue(pixel)) / 255.0;
-  //     }
-  //   }
-
-  //   // Prepare input tensor shape: [1, height, width, channels]
-  //   var inputTensor =
-  //       input.reshape([1, inputHeight, inputWidth, inputChannels]);
-
-  //   // Prepare output buffer
-  //   final outputShape = _wheatInterpreter.getOutputTensor(0).shape;
-  //   debugPrint('Output shape: $outputShape');
-  //   var output = List.generate(
-  //     outputShape[0],
-  //     (_) => List.filled(outputShape[1], 0.0),
-  //   );
-
-  //   // Run inference
-  //   _wheatInterpreter.run(inputTensor, output);
-
-  //   // Extract probabilities from output
-  //   List<double> probabilities = output[0];
-
-  //   // Find max probability and index
-  //   double maxProb = probabilities.reduce((a, b) => a > b ? a : b);
-  //   int maxIndex = probabilities.indexOf(maxProb);
-
-  //   String predictedLabel = _wheatLabels[maxIndex];
-
-  //   debugPrint('Wheat classifier: $predictedLabel, confidence: $maxProb');
-
-  //   // You can adjust the threshold as needed
-  //   return predictedLabel == "wheat" && maxProb > 0.8;
-  // }
-
   Future<void> _runRustInference(File imageFile) async {
+    debugPrint("running rust inference on file ${imageFile.path}");
     // Load image bytes and decode
     final bytes = await imageFile.readAsBytes();
     img.Image? image = img.decodeImage(bytes);
@@ -244,6 +166,8 @@ class _ResultPageState extends State<ResultPage> {
     List<double> probabilities = output[0];
     double maxProb = probabilities.reduce((a, b) => a > b ? a : b);
     int maxIndex = probabilities.indexOf(maxProb);
+    debugPrint(
+        "Image shape: $inputHeight x $inputWidth, Pixel[0]: R=${resizedImage.getPixel(0, 0).r}");
 
     setState(() {
       _predictedLabel = _rustLabels[maxIndex];
@@ -328,12 +252,14 @@ class _ResultPageState extends State<ResultPage> {
                                 ),
                                 const SizedBox(height: 6),
                                 ...List.generate(
-                                  (diagnosis["symptoms"] as List).length,
+                                  (diagnosis["symptoms"] as List<dynamic>?)
+                                          ?.length ??
+                                      0,
                                   (i) => Padding(
                                     padding: const EdgeInsets.only(
                                         left: 8.0, bottom: 2),
                                     child: Text(
-                                      "• ${diagnosis["symptoms"][i]}",
+                                      "• ${diagnosis["symptoms"]?[i] ?? ''}",
                                       style: const TextStyle(fontSize: 14),
                                     ),
                                   ),
@@ -354,12 +280,14 @@ class _ResultPageState extends State<ResultPage> {
                                 ),
                                 const SizedBox(height: 6),
                                 ...List.generate(
-                                  (diagnosis["treatment"] as List).length,
+                                  (diagnosis["treatment"] as List<dynamic>?)
+                                          ?.length ??
+                                      0,
                                   (i) => Padding(
                                     padding: const EdgeInsets.only(
                                         left: 8.0, bottom: 2),
                                     child: Text(
-                                      "• ${diagnosis["treatment"][i]}",
+                                      "• ${diagnosis["treatment"]?[i] ?? ''}",
                                       style: const TextStyle(fontSize: 14),
                                     ),
                                   ),

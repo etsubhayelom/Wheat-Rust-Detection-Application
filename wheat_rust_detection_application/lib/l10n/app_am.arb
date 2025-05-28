@@ -39,6 +39,15 @@
 "chatBot":"ውይይት bot",
 "you":"አንተ",
 "noCommentsYet":"እስካሁን ምንም አስተያየት የለም።",
-"writeYourAnswers":"መልስህን ጻፍ"
+"writeYourAnswers":"መልስህን ጻፍ",
+"logOut":"ዘግተህ ውጣ",
+"areYouSureYouWantToLogout":"እርግጠኛ ነህ መውጣት ትፈልጋለህ?",
+"no":"አይ",
+"yes":"አዎ",
+"expert":"ኤክስፐርት",
+"addArticle":"ጽሑፍ አክል",
+"saved": "የተቀመጡ ልጥፎች",
+"noSavedPosts":"ምንም የተቀመጡ ልጥፎች የሉም",
+"viewGuidelines":"መመሪያዎችን ይመልከቱ"
 
 }

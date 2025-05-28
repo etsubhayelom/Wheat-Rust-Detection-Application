@@ -3,10 +3,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-// import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wheat_rust_detection_application/auth/login.dart';
 
 import 'package:wheat_rust_detection_application/controllers/post_controllers.dart';
@@ -15,7 +16,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:wheat_rust_detection_application/controllers/profile_controller.dart';
 import 'package:wheat_rust_detection_application/views/home_page_widgets/home_page.dart';
-import 'package:wheat_rust_detection_application/views/profile_page.dart';
 
 const String channelId = 'your_channel_id';
 const String channelName = 'Your Channel Name';
@@ -84,7 +84,6 @@ Future<void> main() async {
   // Optionally get the token and print/send to backend
   String? token = await FirebaseMessaging.instance.getToken();
   debugPrint('FCM Token: $token');
-  // TODO: Send this token to your backend server for targeted notifications
 
   // Set background message handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -114,6 +113,12 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  Future<bool> _isLoggedIn() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString('auth_token');
+    return accessToken != null && accessToken.isNotEmpty;
+  }
+
   Locale? _locale;
 
   void setLocale(Locale newLocale) {
@@ -163,29 +168,44 @@ class _MyAppState extends State<MyApp> {
       designSize: const Size(430, 932),
       builder: (context, child) {
         return GetMaterialApp(
-          locale: _locale,
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: const [
-            Locale('en'), // English
-            Locale('am'), // Amharic
-            // Add more as needed
-          ],
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(fontFamily: 'Poppins'),
-          title: 'My App',
-          initialRoute: '/login',
-          getPages: [
-            GetPage(name: '/login', page: () => const LoginPage()),
-            GetPage(name: '/home', page: () => const HomePage()),
-            GetPage(name: '/profile', page: () => const ProfilePage()),
-            // Add more routes here as needed
-          ], // Replace with your home screen
-        );
+            locale: _locale,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('en'), // English
+              Locale('am'), // Amharic
+              // Add more as needed
+            ],
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(fontFamily: 'Poppins'),
+            title: 'My App',
+            home: FutureBuilder(
+                future: _isLoggedIn(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Scaffold(
+                      body: Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
+                  if (snapshot.data!) {
+                    return const HomePage();
+                  } else {
+                    return const LoginPage();
+                  }
+                })
+            // getPages: [
+            //   GetPage(name: '/login', page: () => const LoginPage()),
+            //   GetPage(name: '/home', page: () => const HomePage()),
+            //   GetPage(name: '/profile', page: () => const ProfilePage()),
+            //   // Add more routes here as needed
+            // ], // Replace with your home screen
+            );
       },
     );
   }

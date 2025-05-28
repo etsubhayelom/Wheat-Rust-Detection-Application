@@ -131,10 +131,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> _pickPdfFile(BuildContext context) async {
-    if (_role != "expert") {
+    if (_role != "expert" && _role != "researcher") {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('You must be an expert to upload a certificate.')),
+            content: Text(
+                'You must be an expert or researcher to upload a certificate.')),
       );
       return;
     }

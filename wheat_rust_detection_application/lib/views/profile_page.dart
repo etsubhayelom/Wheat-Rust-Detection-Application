@@ -35,19 +35,23 @@ class _ProfilePageState extends State<ProfilePage>
   String? _errorProfile;
   List<Post> _userPosts = [];
   List<Post> _userArticles = [];
+  List<Post> _savedPosts = [];
+  bool _isLoadingSaved = true;
   bool _isLoadingPosts = true;
   bool _isLoadingArticles = true;
   final PostController _postController = PostController();
   late TabController _tabController;
+  late Worker _approvedListener;
   int _tabCount = 1;
 
   @override
   void initState() {
     super.initState();
+    _tabCount = _profileController.isApproved.value ? 3 : 2;
     _tabController = TabController(length: _tabCount, vsync: this);
 
-    ever(_profileController.isApproved, (bool approved) {
-      final newCount = approved ? 2 : 1;
+    _approvedListener = ever(_profileController.isApproved, (bool approved) {
+      final newCount = approved ? 3 : 2;
       if (_tabCount != newCount) {
         final oldIndex = _tabController.index;
 
@@ -66,11 +70,13 @@ class _ProfilePageState extends State<ProfilePage>
         _loadUserArticles();
       }
     });
+    _loadSavedPosts();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _approvedListener.dispose();
     super.dispose();
   }
 
@@ -101,10 +107,13 @@ class _ProfilePageState extends State<ProfilePage>
     final userId = prefs.getString('user_id');
     if (userId != null) {
       try {
-        final posts = await _postController.fetchUserPosts(userId);
+        final posts = await _postController.fetchUserPosts();
         if (!mounted) return;
         setState(() {
-          _userPosts = posts;
+          _userPosts = posts
+              .where(
+                  (post) => post.userId == userId && post.postType != 'article')
+              .toList();
           _isLoadingPosts = false;
         });
       } catch (e) {
@@ -125,7 +134,10 @@ class _ProfilePageState extends State<ProfilePage>
         final articles = await ApiService().fetchUserArticles(userId);
         if (!mounted) return;
         setState(() {
-          _userArticles = articles;
+          _userArticles = articles
+              .where((article) =>
+                  article.userId == userId && article.postType == 'article')
+              .toList();
           _isLoadingArticles = false;
         });
       } catch (e) {
@@ -134,6 +146,21 @@ class _ProfilePageState extends State<ProfilePage>
           _isLoadingArticles = false;
         });
       }
+    }
+  }
+
+  Future<void> _loadSavedPosts() async {
+    try {
+      await _postController.fetchSavedPosts();
+      setState(() {
+        _savedPosts = _postController.savedPosts;
+        _isLoadingSaved = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingSaved = false;
+      });
+      debugPrint("Error fetching saved posts: $e");
     }
   }
 
@@ -193,6 +220,57 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
+  void _showDeleteDialog(Post post) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('delete'),
+          content: const Text('are you sure you want to delete'),
+          actions: [
+            TextButton(
+              child: Text(AppLocalizations.of(context)!.no),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: Text(AppLocalizations.of(context)!.yes),
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _deletePost(post);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deletePost(Post post) async {
+    try {
+      await _postController.deletePost(post.id); // Your delete logic
+      setState(() {
+        _userPosts.removeWhere((p) => p.id == post.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Post Deleted')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${'failed to delete'}: $e')),
+      );
+    }
+  }
+
+// void _editPost(Post post) {
+//   // Navigate to your edit page, or show an edit dialog
+//   Navigator.push(
+//     context,
+//     MaterialPageRoute(
+//       builder: (context) => CreateArticlePage(post: post, isEditing: true),
+//     ),
+//   );
+// }
+
   Future<void> _logout(BuildContext context) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final refreshToken = prefs.getString('refresh_token');
@@ -223,25 +301,134 @@ class _ProfilePageState extends State<ProfilePage>
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: const Text('Logout'),
-          content: const Text('Are you sure you want to logout?'),
+          title: Text(
+            AppLocalizations.of(context)!.logOut,
+          ),
+          content:
+              Text(AppLocalizations.of(context)!.areYouSureYouWantToLogout),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop(); // Close dialog, stay on page
               },
-              child: const Text('No'),
+              child: Text(AppLocalizations.of(context)!.no),
             ),
             TextButton(
               onPressed: () async {
                 Navigator.of(dialogContext).pop(); // Close dialog
                 await _logout(context);
               },
-              child: const Text('Yes'),
+              child: Text(AppLocalizations.of(context)!.yes),
             ),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildPostCard(
+    Post post, {
+    required VoidCallback onEdit,
+    required VoidCallback onDelete,
+  }) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      clipBehavior: Clip.antiAlias,
+      elevation: 4,
+      child: Stack(
+        children: [
+          // The post image fills the card
+          post.images != null && post.images!.isNotEmpty
+              ? Image.network(
+                  post.images!,
+                  width: double.infinity,
+                  height: 250,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    width: double.infinity,
+                    height: 200,
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.broken_image, size: 60),
+                  ),
+                )
+              : Container(
+                  width: double.infinity,
+                  height: 400,
+                  color: Colors.grey[200],
+                  child: const Icon(Icons.image, size: 60),
+                ),
+          // Gradient overlay for text readability
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 60,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.black.withOpacity(0.7), Colors.transparent],
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                ),
+              ),
+            ),
+          ),
+          // Title and description overlay
+          Positioned(
+            bottom: 8,
+            left: 16,
+            right: 60,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (post.title != null && post.title!.isNotEmpty)
+                  Text(
+                    post.title!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      shadows: [Shadow(blurRadius: 4, color: Colors.black)],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                if (post.description != null && post.description!.isNotEmpty)
+                  Text(
+                    post.description!,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      shadows: [Shadow(blurRadius: 4, color: Colors.black)],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+          // Menu button (edit/delete)
+          Align(
+            alignment: Alignment.topRight,
+            child: PopupMenuButton<String>(
+              color: Colors.white,
+              icon: const Icon(Icons.more_vert, color: Colors.white),
+              onSelected: (String value) {
+                if (value == 'edit') {
+                  onEdit();
+                } else if (value == 'delete') {
+                  onDelete();
+                }
+              },
+              itemBuilder: (BuildContext context) => [
+                const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                const PopupMenuItem(value: 'delete', child: Text('Delete')),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -308,9 +495,11 @@ class _ProfilePageState extends State<ProfilePage>
                                   _showLogoutDialog(context);
                                 },
                                 itemBuilder: (BuildContext context) => [
-                                      const PopupMenuItem<String>(
+                                      PopupMenuItem<String>(
                                         value: 'logout',
-                                        child: Text('Logout'),
+                                        child: Text(
+                                            AppLocalizations.of(context)!
+                                                .logOut),
                                       )
                                     ])
                           ],
@@ -391,7 +580,8 @@ class _ProfilePageState extends State<ProfilePage>
                                                   color: hexToColor('50A865')),
                                             ),
                                             child: Text(
-                                              'Expert',
+                                              AppLocalizations.of(context)!
+                                                  .expert,
                                               style: TextStyle(
                                                 color: hexToColor('006400'),
                                                 fontWeight: FontWeight.bold,
@@ -460,6 +650,9 @@ class _ProfilePageState extends State<ProfilePage>
                     ),
                     if (isApproved)
                       Tab(text: AppLocalizations.of(context)!.articles),
+                    Tab(
+                      text: AppLocalizations.of(context)!.saved,
+                    )
                   ],
                   labelStyle: const TextStyle(
                       fontSize: 18,
@@ -493,10 +686,14 @@ class _ProfilePageState extends State<ProfilePage>
                                     itemBuilder: (context, index) {
                                       final post = _userPosts[index];
                                       // ... your post widget ...
-                                      return Card(
-                                        child: Center(
-                                          child: Text(post.title ?? 'No Title'),
-                                        ),
+                                      return _buildPostCard(
+                                        post,
+                                        onEdit: () {
+                                          // Navigate to edit page or show edit dialog
+                                        },
+                                        onDelete: () {
+                                          _showDeleteDialog(post);
+                                        },
                                       );
                                     },
                                   ),
@@ -524,15 +721,35 @@ class _ProfilePageState extends State<ProfilePage>
                                       itemBuilder: (context, index) {
                                         final article = _userArticles[index];
                                         // ... your article widget ...
-                                        return Card(
-                                          child: Center(
-                                            child: Text(
-                                                article.title ?? 'No Title'),
-                                          ),
+                                        return _buildPostCard(
+                                          article,
+                                          onEdit: () {
+                                            // Navigate to edit page or show edit dialog
+                                          },
+                                          onDelete: () {
+                                            _showDeleteDialog(article);
+                                          },
                                         );
                                       },
                                     ),
                                   ),
+                      _isLoadingSaved
+                          ? const Center(child: CircularProgressIndicator())
+                          : _savedPosts.isEmpty
+                              ? Center(
+                                  child: Text(AppLocalizations.of(context)!
+                                      .noSavedPosts))
+                              : ListView.builder(
+                                  itemCount: _savedPosts.length,
+                                  itemBuilder: (context, index) {
+                                    final post = _savedPosts[index];
+                                    return Card(
+                                      child: Center(
+                                        child: Text(post.description ?? ''),
+                                      ),
+                                    );
+                                  },
+                                ),
                     ],
                   ),
                 ),
@@ -558,7 +775,7 @@ class _ProfilePageState extends State<ProfilePage>
                     }
                   : null,
               icon: const Icon(Icons.add),
-              label: const Text('Add Article'),
+              label: Text(AppLocalizations.of(context)!.addArticle),
               backgroundColor: hexToColor('FFD700'),
               shape: RoundedRectangleBorder(
                 borderRadius:

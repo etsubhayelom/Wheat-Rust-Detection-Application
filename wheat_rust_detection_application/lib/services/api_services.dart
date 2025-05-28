@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import 'package:http_parser/http_parser.dart';
-import 'package:mime/mime.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:wheat_rust_detection_application/models/post_model.dart';
@@ -62,59 +62,59 @@ class ApiService {
     return response;
   }
 
-  Future<http.Response> createPost(
-    String userId, {
-    String? text,
-    List<File>? image,
-    File? audio,
-    required String accessToken,
-  }) async {
-    final url = Uri.parse(
-        '$_baseUrl/community/posts/create/'); // Adjust the URL as per your API
-    var request = http.MultipartRequest('POST', url);
+  // Future<http.Response> createPost(
+  //   String userId, {
+  //   String? text,
+  //   List<File>? image,
+  //   File? audio,
+  //   required String accessToken,
+  // }) async {
+  //   final url = Uri.parse(
+  //       '$_baseUrl/community/posts/create/'); // Adjust the URL as per your API
+  //   var request = http.MultipartRequest('POST', url);
 
-    request.fields['user'] = userId;
+  //   request.fields['user'] = userId;
 
-    if (text != null) {
-      request.fields['text'] = text;
-    }
+  //   if (text != null) {
+  //     request.fields['text'] = text;
+  //   }
 
-    if (image != null && image.isNotEmpty) {
-      for (var imgFile in image) {
-        String mimeType = lookupMimeType(imgFile.path) ?? 'image/jpeg';
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'image',
-            imgFile.path,
-            contentType: MediaType.parse(mimeType),
-          ),
-        );
-      }
-    }
-    // Add audio file if provided
-    if (audio != null) {
-      String audioMimeType = lookupMimeType(audio.path) ?? 'audio/mpeg';
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'audio',
-          audio.path,
-          contentType: MediaType.parse(audioMimeType),
-        ),
-      );
-    }
-    request.headers['Authorization'] = 'Bearer $accessToken';
-    request.fields['user'] = userId;
+  //   if (image != null && image.isNotEmpty) {
+  //     for (var imgFile in image) {
+  //       String mimeType = lookupMimeType(imgFile.path) ?? 'image/jpeg';
+  //       request.files.add(
+  //         await http.MultipartFile.fromPath(
+  //           'image',
+  //           imgFile.path,
+  //           contentType: MediaType.parse(mimeType),
+  //         ),
+  //       );
+  //     }
+  //   }
+  //   // Add audio file if provided
+  //   if (audio != null) {
+  //     String audioMimeType = lookupMimeType(audio.path) ?? 'audio/mpeg';
+  //     request.files.add(
+  //       await http.MultipartFile.fromPath(
+  //         'audio',
+  //         audio.path,
+  //         contentType: MediaType.parse(audioMimeType),
+  //       ),
+  //     );
+  //   }
+  //   request.headers['Authorization'] = 'Bearer $accessToken';
+  //   request.fields['user'] = userId;
 
-    try {
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-      log('Create Post Response: Status Code = ${response.statusCode}, Body = ${response.body}'); // Log the create post response
-      return response;
-    } catch (e) {
-      debugPrint('Error sending request: $e');
-      throw Exception('Failed to create post');
-    }
-  }
+  //   try {
+  //     final streamedResponse = await request.send();
+  //     final response = await http.Response.fromStream(streamedResponse);
+  //     log('Create Post Response: Status Code = ${response.statusCode}, Body = ${response.body}'); // Log the create post response
+  //     return response;
+  //   } catch (e) {
+  //     debugPrint('Error sending request: $e');
+  //     throw Exception('Failed to create post');
+  //   }
+  // }
 
   Future<http.Response> likePost(String postID) async {
     final url = Uri.parse('$_baseUrl/community/posts/$postID/like/');
@@ -204,9 +204,16 @@ class ApiService {
         'Authorization': 'Bearer $authToken',
       },
     );
+    log('Response status: ${response.statusCode}');
+    log('Response body: ${response.body}');
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
-      return data.map((json) => Post.fromJson(json)).toList();
+      try {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => Post.fromJson(json)).toList();
+      } catch (e) {
+        debugPrint('JSON parsing error: $e');
+        throw Exception('Failed to parse posts');
+      }
     } else {
       throw Exception('Failed to load user questions');
     }
@@ -452,6 +459,7 @@ class ApiService {
   Future<http.StreamedResponse> postArticle(
       {required String userId,
       required String text,
+      required String title,
       File? file,
       required String accessToken}) async {
     var request = http.MultipartRequest(
@@ -459,6 +467,7 @@ class ApiService {
     request.fields['user'] = userId;
     request.fields['post_type'] = 'article';
     request.fields['text'] = text;
+    request.fields['title'] = title;
 
     if (file != null) {
       request.files.add(await http.MultipartFile.fromPath('file', file.path));
@@ -476,6 +485,7 @@ class ApiService {
     final url = Uri.parse(
         '$_baseUrl/community/posts/search/?q=${Uri.encodeComponent(query)}');
     final response = await http.get(url);
+    debugPrint("Api response: ${response.body}");
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
@@ -565,5 +575,109 @@ class ApiService {
       log('Chatbot API Error: ${response.statusCode}, ${response.body}');
       throw Exception('Failed to get response from chatbot');
     }
+  }
+
+  Future<http.Response> reportPost(
+      {required String postId, required String reportType}) async {
+    final url = Uri.parse('$_baseUrl/community/posts/$postId/report/');
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? authToken = prefs.getString('auth_token');
+    final response = await http.post(url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $authToken'
+        },
+        body: jsonEncode({
+          'post': postId,
+          'reason': reportType,
+        }));
+    debugPrint('Report API response status: ${response.statusCode}');
+    debugPrint('Report API response body: ${response.body}');
+
+    return response;
+  }
+
+  Future<http.Response> createPostWithImageUrls(
+    String userId, {
+    String? text,
+    String? imageUrl,
+    String? audioUrl,
+    String? fileUrl,
+    String? postType,
+    String? title,
+    required String accessToken,
+  }) async {
+    final url = Uri.parse('$_baseUrl/community/posts/create/');
+    var request = http.MultipartRequest('POST', url);
+
+    request.fields['user'] = userId;
+
+    if (text != null) request.fields['text'] = text;
+    if (imageUrl != null) request.fields['image_url'] = imageUrl;
+    if (audioUrl != null) request.fields['audio_url'] = audioUrl;
+    if (fileUrl != null) request.fields['file_url'] = fileUrl;
+    if (postType != null) request.fields['post_type'] = postType;
+    if (title != null) request.fields['title'] = title;
+
+    request.headers['Authorization'] = 'Bearer $accessToken';
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    debugPrint(
+        'Create Post Response: Status Code = ${response.statusCode}, Body = ${response.body}');
+
+    return response;
+  }
+
+  Future<http.Response> savePost(String postId, String accessToken) async {
+    final url = Uri.parse('$_baseUrl/community/posts/$postId/save/');
+    return await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+      },
+    );
+  }
+
+  // Unsave a post
+  Future<http.Response> unsavePost(String postId, String accessToken) async {
+    final url = Uri.parse('$_baseUrl/community/posts/saved/');
+    return await http.delete(
+      url,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+      },
+    );
+  }
+
+  // Fetch saved posts for a user
+  Future<http.Response> fetchSavedPosts(
+      String userId, String accessToken) async {
+    final url = Uri.parse('$_baseUrl/community/posts/saved/');
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+      },
+    );
+    log('saved response:${response.body}');
+    return response;
+  }
+
+  Future<http.Response> deletePost(
+    String postId,
+  ) async {
+    final url = Uri.parse('$_baseUrl/community/posts/$postId/delete/');
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? authToken = prefs.getString('auth_token');
+    final response = await http.delete(
+      url,
+      headers: {
+        'Authorization': 'Bearer $authToken',
+      },
+    );
+    log('Delete Post Response: Status Code = ${response.statusCode}, Body = ${response.body}');
+    return response;
   }
 }

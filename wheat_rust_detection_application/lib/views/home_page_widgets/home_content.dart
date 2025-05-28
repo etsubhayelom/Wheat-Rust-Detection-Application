@@ -6,6 +6,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wheat_rust_detection_application/controllers/post_controllers.dart';
+import 'package:wheat_rust_detection_application/services/api_services.dart';
 import 'package:wheat_rust_detection_application/views/home_page_widgets/articles_card.dart';
 import 'package:wheat_rust_detection_application/views/home_page_widgets/post_card.dart';
 import 'package:wheat_rust_detection_application/views/home_page_widgets/post_details.dart';
@@ -26,6 +27,7 @@ class HomeContentPage extends StatefulWidget {
 class _HomeContentPageState extends State<HomeContentPage> {
   String _userId = '';
   bool _isPostsSelected = true;
+  final ApiService apiService = ApiService();
 
   @override
   void initState() {
@@ -187,40 +189,42 @@ class _HomeContentPageState extends State<HomeContentPage> {
             ),
             SizedBox(height: 10.h),
             // Example of a reusable card widget
-            if (_isPostsSelected)
-              Consumer<PostController>(
-                builder: (context, postController, child) {
-                  if (postController.posts.isEmpty) {
-                    return const Center(
-                        child:
-                            CircularProgressIndicator()); // Or a message like "No posts yet"
-                  } else {
-                    return Column(
-                      children: postController.posts.map((post) {
-                        return GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => PostDetailsPage(
-                                  post: post,
-                                ),
-                              ),
-                            );
-                          },
-                          child: PostCard(
-                            post: post,
-                            postController: postController,
-                          ),
-                        );
-                      }).toList(),
-                    );
+            Consumer<PostController>(
+              builder: (context, postController, child) {
+                if (postController.isloading) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+
+                if (_isPostsSelected) {
+                  final questions = postController.posts
+                      .where((post) => post.postType != 'article')
+                      .toList();
+                  if (questions.isEmpty) {
+                    return const Center(child: Text('No posts yet!'));
                   }
-                },
-              )
-            else
-              Consumer<PostController>(
-                builder: (context, postController, child) {
+                  return Column(
+                    children: questions.map((question) {
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  PostDetailsPage(post: question),
+                            ),
+                          );
+                        },
+                        child: PostCard(
+                          post: question,
+                          postController: postController,
+                          apiService: apiService,
+                        ),
+                      );
+                    }).toList(),
+                  );
+                } else {
                   final articles = postController.posts
                       .where((post) => post.postType == 'article')
                       .toList();
@@ -230,14 +234,16 @@ class _HomeContentPageState extends State<HomeContentPage> {
                   return Column(
                     children: articles.map((article) {
                       return ArticleCard(
+                        post: article,
+                        postController: postController,
                         title: article.title ?? "No Title",
                         text: article.description ?? "",
-                        onDownload: () {},
                       );
                     }).toList(),
                   );
-                },
-              )
+                }
+              },
+            )
           ],
         ),
       ),

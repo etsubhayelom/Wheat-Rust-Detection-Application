@@ -41,6 +41,7 @@ class _CreateArticlePageState extends State<CreateArticlePage> {
       await PostController().createArticle(
         userId: widget.userId,
         text: _textController.text,
+        title: _titleController.text,
         file: _selectedFile,
       );
       ScaffoldMessenger.of(context).showSnackBar(

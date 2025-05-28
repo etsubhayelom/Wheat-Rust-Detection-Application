@@ -37,7 +37,11 @@ class _CreatePostPageState extends State<CreatePostPage> {
   bool _isRecording = false;
 
   Future<bool> _checkPost() async {
-    final text = _postController.text;
+    final text = _postController.text.trim();
+
+    if (text.isEmpty) {
+      return true;
+    }
     final isRelated = await _geminiService.isWheatRelated(text);
 
     if (!isRelated) {
@@ -139,6 +143,14 @@ class _CreatePostPageState extends State<CreatePostPage> {
     }
     List<File> files = _selectedImages.map((e) => File(e.path)).toList();
     File? audioFile = _audioFilePath != null ? File(_audioFilePath!) : null;
+    if (_postController.text.trim().isEmpty &&
+        files.isEmpty &&
+        audioFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Post cannot be completely empty.')),
+      );
+      return;
+    }
 
     final newPost = await _postControllerLogic.createPost(
       userId: widget.userId,

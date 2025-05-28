@@ -28,6 +28,8 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
 
     try {
       final results = await apiService.searchPosts(widget.query);
+      debugPrint('results: $results');
+
       setState(() {
         _results = results;
       });
@@ -57,7 +59,11 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
             ? const Center(child: Text('No results found.'))
             : ListView(
                 children: _results.map((post) {
-                  return PostCard(post: post, postController: postController);
+                  return PostCard(
+                    post: post,
+                    postController: postController,
+                    apiService: apiService,
+                  );
                 }).toList(),
               ));
   }

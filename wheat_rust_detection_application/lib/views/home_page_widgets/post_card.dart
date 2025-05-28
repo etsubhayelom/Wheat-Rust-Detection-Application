@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:wheat_rust_detection_application/controllers/post_controllers.dart';
 import 'package:wheat_rust_detection_application/models/post_model.dart';
+import 'package:wheat_rust_detection_application/services/api_services.dart';
 import 'package:wheat_rust_detection_application/views/audio_preview.dart';
+import 'package:wheat_rust_detection_application/widgets/report_dialog.dart';
 
 class PostCard extends StatefulWidget {
   final Post post;
   final PostController postController;
 
   final bool isLikedByUser;
+  final ApiService apiService;
 
   const PostCard({
     super.key,
     required this.post,
     required this.postController,
+    required this.apiService,
     this.isLikedByUser = false,
   });
 
@@ -69,30 +73,33 @@ class _PostCardState extends State<PostCard> {
           const SizedBox(
             height: 20,
           ),
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: Colors.yellow[700],
-                child: const Icon(Icons.person, color: Colors.black),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.post.userName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.yellow[700],
+                  child: const Icon(Icons.person, color: Colors.black),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.post.userName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
                     ),
-                  ),
-                  Text(
-                    widget.post.timeAgo,
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            ],
+                    Text(
+                      widget.post.timeAgo,
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -173,15 +180,14 @@ class _PostCardState extends State<PostCard> {
         Text('$_commentsCount'),
         PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert),
-          onSelected: (value) {
+          onSelected: (value) async {
             if (value == 'save') {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Post saved')),
-              );
+              await widget.postController.savePost(widget.post.id);
             } else if (value == 'report') {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Post reported')),
-              );
+              showDialog(
+                  context: context,
+                  builder: (context) => ReportDialog(
+                      postId: widget.post.id, apiService: widget.apiService));
             }
           },
           itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
