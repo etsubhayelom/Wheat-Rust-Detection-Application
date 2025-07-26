@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "706161791751",
+    "project_id": "e-commerce-51f43",
+    "storage_bucket": "e-commerce-51f43.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:706161791751:android:a4b7c27e90d2e69c6e2ba2",
+        "android_client_info": {
+          "package_name": "com.example.e_commerce"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGX6UXed0v_wTbaf5BxJ_XjlAfoH-K_k0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:706161791751:android:c85841a7881a53286e2ba2",
+        "android_client_info": {
+          "package_name": "com.example.wheat_rust_detection_application"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGX6UXed0v_wTbaf5BxJ_XjlAfoH-K_k0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
